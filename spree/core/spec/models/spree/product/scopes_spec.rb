@@ -502,7 +502,7 @@ describe 'Product scopes', type: :model do
     describe '.with_option' do
       subject(:with_option) { Spree::Product.method(:with_option) }
 
-      it "finds by a option type's name" do
+      it "finds by an option type's name" do
         expect(with_option.call(option_type.name).count).to eq(1)
       end
 
@@ -510,7 +510,7 @@ describe 'Product scopes', type: :model do
         expect(with_option.call('fake').count).to eq(0)
       end
 
-      it 'finds by a option type' do
+      it 'finds by an option type' do
         expect(with_option.call(option_type).count).to eq(1)
       end
 
@@ -526,7 +526,7 @@ describe 'Product scopes', type: :model do
     describe '.with_option_value' do
       subject(:with_option) { Spree::Product.method(:with_option_value) }
 
-      it "finds by a option type's name" do
+      it "finds by an option type's name" do
         expect(with_option.call(option_type.name, option_value.name).count).to eq({ product.id => 1 })
       end
 
@@ -534,7 +534,7 @@ describe 'Product scopes', type: :model do
         expect(with_option.call('fake', 'fake').count).to eq({})
       end
 
-      it 'finds by a option type' do
+      it 'finds by an option type' do
         expect(with_option.call(option_type, option_value.name).count).to eq({ product.id => 1 })
       end
 

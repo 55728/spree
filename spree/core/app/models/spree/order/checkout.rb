@@ -317,7 +317,7 @@ module Spree
           # attributes for a single payment and its source, discarding attributes
           # for payment methods other than the one selected
           #
-          # In case a existing credit card is provided it needs to build the payment
+          # In case an existing credit card is provided it needs to build the payment
           # attributes from scratch so we can set the amount. example payload:
           #
           #   {
