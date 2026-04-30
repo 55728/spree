@@ -22,8 +22,10 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { adminClient } from '@/client'
 import { AddressBlock } from '@/components/address-block'
 import { AddressFormDialog, type AddressParams } from '@/components/address-form-dialog'
-import { BackButton } from '@/components/back-button'
 import { useConfirm } from '@/components/confirm-dialog'
+import { PageHeader } from '@/components/spree/page-header'
+import { ResourceLayout } from '@/components/spree/resource-layout'
+import { ErrorState } from '@/components/spree/route-error-boundary'
 import { TagCombobox } from '@/components/tag-combobox'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -65,55 +67,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useAuth } from '@/hooks/use-auth'
+import { orderQueryKey, useOrder, useOrderMutation } from '@/hooks/use-order'
+import { useResourceMutation } from '@/hooks/use-resource-mutation'
 import { formatRelativeTime } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/$storeId/orders/$orderId')({
   component: OrderDetailPage,
 })
-
-// ---------------------------------------------------------------------------
-// Data hooks
-// ---------------------------------------------------------------------------
-
-function useOrder(orderId: string) {
-  const { isAuthenticated } = useAuth()
-  return useQuery({
-    queryKey: ['order', orderId],
-    queryFn: () =>
-      adminClient.orders.get(orderId, {
-        expand: [
-          'items',
-          'fulfillments',
-          'fulfillments.delivery_method',
-          'fulfillments.stock_location',
-          'payments',
-          'payments.payment_method',
-          'billing_address',
-          'shipping_address',
-          'customer',
-          'created_by',
-          'canceler',
-          'approver',
-          'market',
-        ],
-      }),
-    enabled: isAuthenticated,
-  })
-}
-
-/** Wrapper for mutations that invalidate the order query on success */
-function useOrderMutation<TParams>(
-  orderId: string,
-  mutationFn: (params: TParams) => Promise<unknown>,
-) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['order', orderId] }),
-  })
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -136,34 +97,41 @@ function formatDate(iso: string | null) {
 
 function OrderDetailPage() {
   const { orderId } = Route.useParams()
-  const { data: order, isLoading, error } = useOrder(orderId)
+  const { data: order, isLoading, error, refetch } = useOrder(orderId)
 
   if (isLoading) return <OrderSkeleton />
-  if (error || !order) return <p className="text-destructive">Failed to load order {orderId}.</p>
+  if (error || !order) {
+    return (
+      <ErrorState
+        title="Failed to load order"
+        description={`We couldn't load order ${orderId}.`}
+        error={error as Error | undefined}
+        onRetry={() => refetch()}
+      />
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <OrderHeader order={order} />
-
-      <div className="grid grid-cols-12 gap-6">
-        {/* Main content */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+    <ResourceLayout
+      header={<OrderHeader order={order} />}
+      main={
+        <>
           <LineItemsCard order={order} />
           <ShipmentsCard order={order} />
           <PaymentsCard order={order} />
           <OrderSummaryCard order={order} />
-        </div>
-
-        {/* Sidebar */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+        </>
+      }
+      sidebar={
+        <>
           <CustomerCard order={order} />
           <TagsCard order={order} />
           <DiscountsCard order={order} />
           <SpecialInstructionsCard order={order} />
           <InternalNoteCard order={order} />
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    />
   )
 }
 
@@ -177,126 +145,146 @@ function OrderHeader({ order }: { order: Order }) {
 
   const backFallback = order.completed_at ? 'orders' : 'orders/drafts'
 
-  const cancelMutation = useOrderMutation(orderId, () => adminClient.orders.cancel(orderId))
-  const completeMutation = useOrderMutation(orderId, () => adminClient.orders.complete(orderId))
-  const approveMutation = useOrderMutation(orderId, () => adminClient.orders.approve(orderId))
-  const resumeMutation = useOrderMutation(orderId, () => adminClient.orders.resume(orderId))
-  const resendMutation = useOrderMutation(orderId, () =>
-    adminClient.orders.resendConfirmation(orderId, {}),
+  const cancelMutation = useResourceMutation({
+    mutationFn: () => adminClient.orders.cancel(orderId),
+    invalidate: [orderQueryKey(orderId)],
+    successMessage: 'Order canceled',
+    errorMessage: 'Failed to cancel order',
+  })
+  const completeMutation = useResourceMutation({
+    mutationFn: () => adminClient.orders.complete(orderId),
+    invalidate: [orderQueryKey(orderId)],
+    successMessage: 'Order completed',
+    errorMessage: 'Failed to complete order',
+  })
+  const approveMutation = useResourceMutation({
+    mutationFn: () => adminClient.orders.approve(orderId),
+    invalidate: [orderQueryKey(orderId)],
+    successMessage: 'Order approved',
+    errorMessage: 'Failed to approve order',
+  })
+  const resumeMutation = useResourceMutation({
+    mutationFn: () => adminClient.orders.resume(orderId),
+    invalidate: [orderQueryKey(orderId)],
+    successMessage: 'Order resumed',
+    errorMessage: 'Failed to resume order',
+  })
+  const resendMutation = useResourceMutation({
+    mutationFn: () => adminClient.orders.resendConfirmation(orderId, {}),
+    successMessage: 'Confirmation sent',
+    errorMessage: 'Failed to send confirmation',
+  })
+
+  const badges = (
+    <>
+      {order.payment_status && <StatusBadge status={order.payment_status} />}
+      {order.fulfillment_status && <StatusBadge status={order.fulfillment_status} />}
+    </>
+  )
+
+  const subtitle = order.completed_at
+    ? `Completed ${formatRelativeTime(order.completed_at)}`
+    : undefined
+
+  const dropdownItems = (
+    <>
+      {order.status === 'draft' && (
+        <DropdownMenuItem
+          onClick={async () => {
+            if (
+              await confirm({
+                message: 'Complete this draft order now?',
+                confirmLabel: 'Complete',
+              })
+            ) {
+              completeMutation.mutate(undefined)
+            }
+          }}
+          disabled={completeMutation.isPending}
+        >
+          <CheckCircleIcon className="size-4" />
+          Complete Order
+        </DropdownMenuItem>
+      )}
+      {order.considered_risky && !order.approved_at && (
+        <DropdownMenuItem
+          onClick={async () => {
+            if (await confirm({ message: 'Approve this order?', confirmLabel: 'Approve' })) {
+              approveMutation.mutate(undefined)
+            }
+          }}
+          disabled={approveMutation.isPending}
+        >
+          <ShieldCheckIcon className="size-4" />
+          Approve Order
+        </DropdownMenuItem>
+      )}
+      {order.status === 'canceled' && (
+        <DropdownMenuItem
+          onClick={async () => {
+            if (
+              await confirm({
+                message: 'Resume this canceled order?',
+                confirmLabel: 'Resume',
+              })
+            ) {
+              resumeMutation.mutate(undefined)
+            }
+          }}
+          disabled={resumeMutation.isPending}
+        >
+          <RotateCcwIcon className="size-4" />
+          Resume Order
+        </DropdownMenuItem>
+      )}
+      {order.completed_at && (
+        <>
+          <DropdownMenuItem>
+            <ExternalLinkIcon className="size-4" />
+            Preview Order
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => resendMutation.mutate(undefined)}
+            disabled={resendMutation.isPending}
+          >
+            <MailIcon className="size-4" />
+            Resend Confirmation
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      )}
+      {order.status !== 'canceled' && (
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={async () => {
+            if (
+              await confirm({
+                message: 'Are you sure you want to cancel this order?',
+                variant: 'destructive',
+                confirmLabel: 'Cancel Order',
+              })
+            ) {
+              cancelMutation.mutate(undefined)
+            }
+          }}
+          disabled={cancelMutation.isPending}
+        >
+          <XCircleIcon className="size-4" />
+          Cancel Order
+        </DropdownMenuItem>
+      )}
+    </>
   )
 
   return (
-    <div className="flex items-center gap-3">
-      <BackButton fallback={backFallback} />
-
-      <h1 className="text-2xl font-medium">{order.number}</h1>
-
-      {order.payment_status && <StatusBadge status={order.payment_status} />}
-      {order.fulfillment_status && <StatusBadge status={order.fulfillment_status} />}
-
-      {order.completed_at && (
-        <span className="text-sm text-muted-foreground">
-          Completed {order.completed_at ? formatRelativeTime(order.completed_at) : ''}
-        </span>
-      )}
-
-      <div className="ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon-sm" variant="outline">
-              <EllipsisVerticalIcon className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {order.status === 'draft' && (
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (
-                    await confirm({
-                      message: 'Complete this draft order now?',
-                      confirmLabel: 'Complete',
-                    })
-                  ) {
-                    completeMutation.mutate(undefined)
-                  }
-                }}
-                disabled={completeMutation.isPending}
-              >
-                <CheckCircleIcon className="size-4" />
-                Complete Order
-              </DropdownMenuItem>
-            )}
-            {order.considered_risky && !order.approved_at && (
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (await confirm({ message: 'Approve this order?', confirmLabel: 'Approve' })) {
-                    approveMutation.mutate(undefined)
-                  }
-                }}
-                disabled={approveMutation.isPending}
-              >
-                <ShieldCheckIcon className="size-4" />
-                Approve Order
-              </DropdownMenuItem>
-            )}
-            {order.status === 'canceled' && (
-              <DropdownMenuItem
-                onClick={async () => {
-                  if (
-                    await confirm({
-                      message: 'Resume this canceled order?',
-                      confirmLabel: 'Resume',
-                    })
-                  ) {
-                    resumeMutation.mutate(undefined)
-                  }
-                }}
-                disabled={resumeMutation.isPending}
-              >
-                <RotateCcwIcon className="size-4" />
-                Resume Order
-              </DropdownMenuItem>
-            )}
-            {order.completed_at && (
-              <>
-                <DropdownMenuItem>
-                  <ExternalLinkIcon className="size-4" />
-                  Preview Order
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => resendMutation.mutate(undefined)}
-                  disabled={resendMutation.isPending}
-                >
-                  <MailIcon className="size-4" />
-                  Resend Confirmation
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            {order.status !== 'canceled' && (
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={async () => {
-                  if (
-                    await confirm({
-                      message: 'Are you sure you want to cancel this order?',
-                      variant: 'destructive',
-                      confirmLabel: 'Cancel Order',
-                    })
-                  ) {
-                    cancelMutation.mutate(undefined)
-                  }
-                }}
-                disabled={cancelMutation.isPending}
-              >
-                <XCircleIcon className="size-4" />
-                Cancel Order
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+    <PageHeader
+      title={order.number}
+      subtitle={subtitle}
+      backTo={backFallback}
+      badges={badges}
+      dropdownItems={dropdownItems}
+      resource={{ id: order.id, number: order.number }}
+    />
   )
 }
 
