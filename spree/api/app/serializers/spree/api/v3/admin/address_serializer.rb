@@ -5,17 +5,13 @@ module Spree
         class AddressSerializer < V3::AddressSerializer
           typelize label: [:string, nullable: true],
                    customer_id: [:string, nullable: true],
-                   metadata: 'Record<string, unknown> | null'
+                   metadata: 'Record<string, unknown>'
 
-          attributes :label,
+          attributes :label, :metadata,
                      created_at: :iso8601, updated_at: :iso8601
 
           attribute :customer_id do |address|
             address.user&.prefixed_id
-          end
-
-          attribute :metadata do |address|
-            address.metadata.presence
           end
         end
       end

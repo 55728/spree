@@ -5,9 +5,11 @@ module Spree
         class RefundSerializer < V3::RefundSerializer
           typelize payment_id: [:string, nullable: true],
                    refund_reason_id: [:string, nullable: true],
-                   reimbursement_id: [:string, nullable: true]
+                   reimbursement_id: [:string, nullable: true],
+                   metadata: 'Record<string, unknown>'
 
-          attributes created_at: :iso8601, updated_at: :iso8601
+          attributes :metadata,
+                     created_at: :iso8601, updated_at: :iso8601
 
           one :payment,
               resource: Spree.api.admin_payment_serializer,

@@ -11,7 +11,7 @@ module Spree
                    last_sign_in_ip: [:string, nullable: true], current_sign_in_ip: [:string, nullable: true],
                    tags: [:string, multi: true],
                    internal_note_html: [:string, nullable: true],
-                   metadata: 'Record<string, unknown> | null',
+                   metadata: 'Record<string, unknown>',
                    orders_count: :number,
                    total_spent: :string,
                    display_total_spent: :string,
@@ -20,7 +20,7 @@ module Spree
                    default_shipping_address_id: [:string, nullable: true]
 
           # Admin-only attributes
-          attributes :login,
+          attributes :login, :metadata,
                      last_sign_in_at: :iso8601, current_sign_in_at: :iso8601,
                      created_at: :iso8601, updated_at: :iso8601
 
@@ -46,10 +46,6 @@ module Spree
 
           attribute :internal_note_html do |user|
             user.respond_to?(:internal_note) ? user.internal_note&.body&.to_s.presence : nil
-          end
-
-          attribute :metadata do |user|
-            user.metadata.presence
           end
 
           attribute :default_billing_address_id do |user|

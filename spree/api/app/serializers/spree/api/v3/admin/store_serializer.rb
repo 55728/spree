@@ -18,9 +18,10 @@ module Spree
                    meta_description: [:string, nullable: true],
                    default: :boolean,
                    logo_url: [:string, nullable: true],
-                   mailer_logo_url: [:string, nullable: true]
+                   mailer_logo_url: [:string, nullable: true],
+                   metadata: 'Record<string, unknown>'
 
-          attributes :id, :name, :url, :code,
+          attributes :metadata, :id, :name, :url, :code,
                      :mail_from_address, :customer_support_email,
                      :new_order_notifications_email,
                      :description, :address, :contact_phone,

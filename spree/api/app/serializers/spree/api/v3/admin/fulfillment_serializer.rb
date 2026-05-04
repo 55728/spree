@@ -3,18 +3,14 @@ module Spree
     module V3
       module Admin
         class FulfillmentSerializer < V3::FulfillmentSerializer
-          typelize metadata: 'Record<string, unknown> | null',
+          typelize metadata: 'Record<string, unknown>',
                    order_id: [:string, nullable: true],
                    stock_location_id: [:string, nullable: true],
                    adjustment_total: :string,
                    pre_tax_amount: :string
 
-          attributes :adjustment_total, :pre_tax_amount,
+          attributes :metadata, :adjustment_total, :pre_tax_amount,
                      created_at: :iso8601, updated_at: :iso8601
-
-          attribute :metadata do |shipment|
-            shipment.metadata.presence
-          end
 
           attribute :order_id do |shipment|
             shipment.order&.prefixed_id

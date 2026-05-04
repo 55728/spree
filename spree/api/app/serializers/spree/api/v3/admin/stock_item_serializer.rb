@@ -3,7 +3,10 @@ module Spree
     module V3
       module Admin
         class StockItemSerializer < V3::StockItemSerializer
-          attributes created_at: :iso8601, updated_at: :iso8601
+          typelize metadata: 'Record<string, unknown>'
+
+          attributes :metadata,
+                     created_at: :iso8601, updated_at: :iso8601
 
           one :stock_location,
               resource: Spree.api.admin_stock_location_serializer,

@@ -11,10 +11,11 @@ module Spree
                    position: :number, tax_category_id: [:string, nullable: true],
                    cost_price: [:string, nullable: true], cost_currency: [:string, nullable: true],
                    total_on_hand: [:number, nullable: true],
-                   deleted_at: [:string, nullable: true]
+                   deleted_at: [:string, nullable: true],
+                   metadata: 'Record<string, unknown>'
 
           # Admin-only attributes
-          attributes :position, :total_on_hand, :tax_category_id, :cost_price, :cost_currency, deleted_at: :iso8601,
+          attributes :metadata, :position, :total_on_hand, :tax_category_id, :cost_price, :cost_currency, deleted_at: :iso8601,
                      created_at: :iso8601, updated_at: :iso8601
 
           attribute :product_name do |variant|
