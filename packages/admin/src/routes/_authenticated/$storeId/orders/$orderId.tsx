@@ -20,13 +20,15 @@ import {
 } from 'lucide-react'
 import { type FormEvent, useEffect, useState } from 'react'
 import { adminClient } from '@/client'
-import { AddressBlock } from '@/components/address-block'
-import { AddressFormDialog, type AddressParams } from '@/components/address-form-dialog'
-import { useConfirm } from '@/components/confirm-dialog'
+import { AddressBlock } from '@/components/spree/address-block'
+import { AddressFormDialog, type AddressParams } from '@/components/spree/address-form-dialog'
+import { useConfirm } from '@/components/spree/confirm-dialog'
+import { CustomFieldsCard } from '@/components/spree/custom-fields/custom-fields-card'
+import { MetadataCard } from '@/components/spree/metadata/metadata-card'
 import { PageHeader } from '@/components/spree/page-header'
 import { ResourceLayout } from '@/components/spree/resource-layout'
 import { ErrorState } from '@/components/spree/route-error-boundary'
-import { TagCombobox } from '@/components/tag-combobox'
+import { TagCombobox } from '@/components/spree/tag-combobox'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -120,6 +122,8 @@ function OrderDetailPage() {
           <ShipmentsCard order={order} />
           <PaymentsCard order={order} />
           <OrderSummaryCard order={order} />
+          <CustomFieldsCard ownerType="Spree::Order" ownerId={order.id} resourceLabel="orders" />
+          <MetadataCard metadata={order.metadata} />
         </>
       }
       sidebar={

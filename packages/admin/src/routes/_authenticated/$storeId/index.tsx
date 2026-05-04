@@ -6,7 +6,6 @@ import { PackageIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
 import { adminClient } from '@/client'
-import { type DateRange, DateRangePicker } from '@/components/date-range-picker'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   type ChartConfig,
@@ -14,6 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { type DateRange, DateRangePicker } from '@/components/ui/date-range-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/_authenticated/$storeId/')({

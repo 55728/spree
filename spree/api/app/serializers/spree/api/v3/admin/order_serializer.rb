@@ -16,12 +16,12 @@ module Spree
                    canceled_at: [:string, nullable: true], approved_at: [:string, nullable: true],
                    payment_total: :string, display_payment_total: :string,
                    tags: [:string, multi: true],
-                   metadata: 'Record<string, unknown> | null'
+                   metadata: 'Record<string, unknown>'
 
           # Admin-only attributes
           attributes :status, :last_ip_address, :considered_risky,
                      :confirmation_delivered, :store_owner_notification_delivered,
-                     :payment_total, :display_payment_total,
+                     :payment_total, :display_payment_total, :metadata,
                      canceled_at: :iso8601, approved_at: :iso8601,
                      created_at: :iso8601, updated_at: :iso8601
 
@@ -31,10 +31,6 @@ module Spree
 
           attribute :internal_note do |order|
             order.internal_note&.to_plain_text.presence
-          end
-
-          attribute :metadata do |order|
-            order.metadata.presence
           end
 
           attribute :approver_id do |order|

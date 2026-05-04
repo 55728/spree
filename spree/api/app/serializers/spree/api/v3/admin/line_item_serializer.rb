@@ -5,15 +5,12 @@ module Spree
         # Admin API Line Item Serializer
         # Extends the store serializer with metadata visibility
         class LineItemSerializer < V3::LineItemSerializer
-          typelize metadata: 'Record<string, unknown> | null',
+          typelize metadata: 'Record<string, unknown>',
                    cost_price: [:string, nullable: true],
                    tax_category_id: [:string, nullable: true]
 
-          attributes created_at: :iso8601, updated_at: :iso8601
-
-          attribute :metadata do |line_item|
-            line_item.metadata.presence
-          end
+          attributes :metadata,
+                     created_at: :iso8601, updated_at: :iso8601
 
           attribute :cost_price do |line_item|
             line_item.cost_price&.to_s

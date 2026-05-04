@@ -3,7 +3,8 @@ module Spree
     module V3
       module Admin
         class MediaSerializer < V3::MediaSerializer
-          typelize viewable_type: :string, viewable_id: :string
+          typelize viewable_type: :string, viewable_id: :string,
+                   metadata: 'Record<string, unknown>'
 
           attributes created_at: :iso8601, updated_at: :iso8601
 
@@ -11,7 +12,7 @@ module Spree
             asset.viewable&.prefixed_id
           end
 
-          attributes :viewable_type
+          attributes :metadata, :viewable_type
         end
       end
     end

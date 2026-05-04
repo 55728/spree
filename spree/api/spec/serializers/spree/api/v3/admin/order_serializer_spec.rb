@@ -17,8 +17,8 @@ RSpec.describe Spree::Api::V3::Admin::OrderSerializer do
     end
 
     context 'when order has no metadata' do
-      it 'returns nil' do
-        expect(subject['metadata']).to be_nil
+      it 'returns empty hash' do
+        expect(subject['metadata']).to eq({})
       end
     end
   end

@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { adminClient } from '@/client'
-import { AppSidebar } from '@/components/app-sidebar'
+import { AppSidebar } from '@/components/spree/app-sidebar'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { StoreProvider } from '@/providers/store-provider'
 

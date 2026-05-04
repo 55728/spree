@@ -153,7 +153,7 @@ export function RichTextEditor({
       {/* Editor */}
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none px-3 py-2 min-h-32 [&_.tiptap]:outline-none [&_.tiptap.is-editor-empty:first-child::before]:text-gray-500 [&_.tiptap.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap.is-editor-empty:first-child::before]:float-left [&_.tiptap.is-editor-empty:first-child::before]:h-0 [&_.tiptap.is-editor-empty:first-child::before]:pointer-events-none"
+        className="prose prose-sm max-w-none px-3 py-2 [&_.tiptap]:min-h-32 [&_.tiptap]:outline-none [&_.tiptap.is-editor-empty:first-child::before]:text-gray-500 [&_.tiptap.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.tiptap.is-editor-empty:first-child::before]:float-left [&_.tiptap.is-editor-empty:first-child::before]:h-0 [&_.tiptap.is-editor-empty:first-child::before]:pointer-events-none"
       />
     </div>
   )

@@ -5,9 +5,10 @@ module Spree
         class StoreCreditSerializer < V3::StoreCreditSerializer
           typelize customer_id: [:string, nullable: true],
                    created_by_id: [:string, nullable: true],
-                   metadata: 'Record<string, unknown> | null'
+                   metadata: 'Record<string, unknown>'
 
-          attributes created_at: :iso8601, updated_at: :iso8601
+          attributes :metadata,
+                     created_at: :iso8601, updated_at: :iso8601
 
           attribute :customer_id do |store_credit|
             store_credit.user&.prefixed_id
@@ -15,10 +16,6 @@ module Spree
 
           attribute :created_by_id do |store_credit|
             store_credit.created_by&.prefixed_id
-          end
-
-          attribute :metadata do |store_credit|
-            store_credit.metadata.presence
           end
 
           attributes created_at: :iso8601, updated_at: :iso8601

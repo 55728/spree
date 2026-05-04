@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 import { z } from 'zod/v4'
 import { EmptyState } from '@/components/spree/empty-state'
-import { TableToolbar } from '@/components/table-toolbar'
+import { TableToolbar } from '@/components/spree/table-toolbar'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -41,20 +41,25 @@ export const resourceSearchSchema = z.object({
   sort: z.string().optional(),
   dir: z.enum(['asc', 'desc']).optional(),
   search: z.string().optional(),
-  filters: z.preprocess((val) => {
-    if (typeof val === 'string') {
-      try {
-        return JSON.parse(val)
-      } catch {
-        return []
+  filters: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val)
+        } catch {
+          return []
+        }
       }
-    }
-    return val ?? []
-  }, z.array(filterSchema).optional().default([])),
-  columns: z.preprocess((val) => {
-    if (typeof val === 'string') return val.split(',')
-    return val ?? undefined
-  }, z.array(z.string()).optional()),
+      return val ?? []
+    }, z.array(filterSchema))
+    .optional()
+    .default([]),
+  columns: z
+    .preprocess((val) => {
+      if (typeof val === 'string') return val.split(',')
+      return val
+    }, z.array(z.string()))
+    .optional(),
 })
 
 export type ResourceSearch = z.infer<typeof resourceSearchSchema>
