@@ -30,8 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ColumnDef, FilterRule, SortOption } from '@/lib/table-registry'
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface TableToolbarProps {
   /** Displayable columns (for column selector and table headers) */

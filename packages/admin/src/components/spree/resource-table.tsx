@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { type ReactNode, useDeferredValue, useState } from 'react'
 import { z } from 'zod/v4'
 import { EmptyState } from '@/components/spree/empty-state'
-import { TableToolbar } from '@/components/table-toolbar'
+import { TableToolbar } from '@/components/spree/table-toolbar'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,

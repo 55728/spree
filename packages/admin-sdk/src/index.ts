@@ -15,5 +15,8 @@ export { AdminClient } from './admin-client'
 export type { AdminClientConfig, Client } from './client'
 export { createAdminClient } from './client'
 
-// All types
+// Param types (request bodies)
+export type * from './params'
+
+// All entity types
 export * from './types'

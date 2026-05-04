@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { adminClient } from '@/client'
-import { ResourceTable, resourceSearchSchema } from '@/components/resource-table'
+import { ResourceTable, resourceSearchSchema } from '@/components/spree/resource-table'
 import '@/tables/customers'
 
 export const Route = createFileRoute('/_authenticated/$storeId/customers/')({

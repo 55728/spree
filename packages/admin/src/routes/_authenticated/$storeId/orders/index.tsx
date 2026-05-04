@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { adminClient } from '@/client'
-import { ResourceTable, resourceSearchSchema } from '@/components/resource-table'
+import { ResourceTable, resourceSearchSchema } from '@/components/spree/resource-table'
 import { Button } from '@/components/ui/button'
 import '@/tables/orders'
 

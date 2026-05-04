@@ -11,12 +11,23 @@ function Sheet({
   open,
   defaultOpen,
   onOpenChange,
+  modal,
   ...props
 }: {
   children?: React.ReactNode
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean, eventDetails: SheetPrimitive.Root.ChangeEventDetails) => void
+  /**
+   * `true` (default) — full modal: focus trap + scroll lock + outside pointer interactions disabled.
+   * `'trap-focus'` — focus trap only; outside pointer interactions remain enabled.
+   * `false` — no modal behavior.
+   *
+   * Use `'trap-focus'` when the sheet contains a contenteditable (e.g. tiptap)
+   * — the full-modal pointer-down listeners on `document` with `capture: true`
+   * race with ProseMirror's own pointer handlers and break click-to-focus.
+   */
+  modal?: boolean | 'trap-focus'
 }) {
   return (
     <SheetPrimitive.Root
@@ -24,6 +35,7 @@ function Sheet({
       open={open}
       defaultOpen={defaultOpen}
       onOpenChange={onOpenChange}
+      modal={modal}
       {...props}
     >
       {children}

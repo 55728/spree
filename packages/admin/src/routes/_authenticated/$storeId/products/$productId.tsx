@@ -20,12 +20,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, type UseFormReturn, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { adminClient } from '@/client'
-import { useConfirm } from '@/components/confirm-dialog'
+import { useConfirm } from '@/components/spree/confirm-dialog'
+import { CustomFieldsCard } from '@/components/spree/custom-fields/custom-fields-card'
+import { MetadataCard } from '@/components/spree/metadata/metadata-card'
 import { PageHeader } from '@/components/spree/page-header'
 import { ResourceLayout } from '@/components/spree/resource-layout'
 import { ErrorState } from '@/components/spree/route-error-boundary'
 import { StickyFormFooter } from '@/components/spree/sticky-form-footer'
-import { TagCombobox } from '@/components/tag-combobox'
+import { TagCombobox } from '@/components/spree/tag-combobox'
 import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -227,7 +229,12 @@ function ProductForm({ product }: { product: Product }) {
             <MediaCard productId={productId} />
             {!hasVariants && <PricingCard form={form} />}
             {!hasVariants && <InventoryCard form={form} />}
-            <SEOCard form={form} product={product} />
+            <CustomFieldsCard
+              ownerType="Spree::Product"
+              ownerId={productId}
+              resourceLabel="products"
+            />
+            <MetadataCard metadata={product.metadata} />
           </>
         }
         sidebar={
@@ -236,6 +243,7 @@ function ProductForm({ product }: { product: Product }) {
             <CategorizationCard form={form} />
             <ShippingCard form={form} hasVariants={hasVariants} />
             <TaxCard form={form} />
+            <SEOCard form={form} product={product} />
           </>
         }
       />
