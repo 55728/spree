@@ -335,7 +335,7 @@ function useCustomerOrders(customerId: string, params: { limit: number; status?:
     queryFn: () =>
       adminClient.orders.list({
         q: { user_id_eq: customerId, ...(params.status ? { status_eq: params.status } : {}) },
-        per_page: params.limit,
+        limit: params.limit,
         sort: '-completed_at',
         expand: ['items'],
       }),

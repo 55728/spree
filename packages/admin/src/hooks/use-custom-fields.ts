@@ -16,7 +16,7 @@ const definitionsKey = (resourceType: string) => ['custom-field-definitions', re
 export function useCustomFields(ownerType: CustomFieldOwnerType, ownerId: string) {
   return useQuery({
     queryKey: valuesKey(ownerType, ownerId),
-    queryFn: () => adminClient.customFields(ownerType, ownerId).list({ per_page: 100 }),
+    queryFn: () => adminClient.customFields(ownerType, ownerId).list({ limit: 100 }),
     enabled: !!ownerId,
   })
 }
@@ -26,7 +26,7 @@ export function useCustomFieldDefinitions(resourceType: string) {
     queryKey: definitionsKey(resourceType),
     queryFn: () =>
       adminClient.customFieldDefinitions.list({
-        per_page: 100,
+        limit: 100,
         resource_type_eq: resourceType,
       }),
     enabled: !!resourceType,
