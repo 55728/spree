@@ -365,6 +365,18 @@ export interface InvitationCreateParams {
   role_id: string
 }
 
+/**
+ * Body for accepting an invitation. Empty for existing accounts when no
+ * password change is needed; populated with `password` (and optionally
+ * `password_confirmation` + names) for new accounts being created on accept.
+ */
+export interface InvitationAcceptParams {
+  password?: string
+  password_confirmation?: string
+  first_name?: string
+  last_name?: string
+}
+
 export interface AdminUserUpdateParams {
   first_name?: string
   last_name?: string

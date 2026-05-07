@@ -12,7 +12,8 @@ module Spree
                    role_id: [:string, nullable: true],
                    role_name: [:string, nullable: true],
                    inviter_email: [:string, nullable: true],
-                   expires_at: [:string, nullable: true]
+                   expires_at: [:string, nullable: true],
+                   acceptance_url: :string
 
           attributes :email, :status,
                      created_at: :iso8601, updated_at: :iso8601, expires_at: :iso8601
@@ -27,6 +28,16 @@ module Spree
 
           attribute :inviter_email do |invitation|
             invitation.inviter&.email
+          end
+
+          # Absolute URL when `Spree::Config[:admin_url]` is set, otherwise
+          # the path so the SPA can prepend `window.location.origin`.
+          attribute :acceptance_url do |invitation|
+            if Spree::Config[:admin_url].present?
+              Rails.application.routes.url_helpers.admin_invitation_acceptance_url(invitation)
+            else
+              "/accept-invitation/#{invitation.prefixed_id}?token=#{invitation.token}"
+            end
           end
         end
       end

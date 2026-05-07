@@ -3,6 +3,7 @@ import type { AdminUser, Invitation, Role } from '@spree/admin-sdk'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ClockIcon,
+  LinkIcon,
   MailIcon,
   MoreHorizontalIcon,
   PlusIcon,
@@ -54,6 +55,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import {
   useCreateInvitation,
   useDeleteInvitation,
@@ -279,6 +281,16 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
   const resendMutation = useResendInvitation()
   const deleteMutation = useDeleteInvitation()
   const confirm = useConfirm()
+  const { copy } = useCopyToClipboard()
+
+  async function handleCopyLink() {
+    // Path-only when `Spree::Config[:admin_url]` is unset; resolve against the SPA's origin.
+    const url = invitation.acceptance_url.startsWith('/')
+      ? `${window.location.origin}${invitation.acceptance_url}`
+      : invitation.acceptance_url
+    await copy(url)
+    toast.success('Invitation link copied')
+  }
 
   async function handleResend() {
     try {
@@ -342,6 +354,10 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
             <DropdownMenuItem onClick={handleResend}>
               <MailIcon className="size-4" />
               Resend invitation
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyLink}>
+              <LinkIcon className="size-4" />
+              Copy invitation link
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={handleDelete}>

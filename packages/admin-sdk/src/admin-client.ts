@@ -48,6 +48,24 @@ export interface LoginCredentials {
   password: string
 }
 
+/**
+ * Public lookup of a pending invitation. The SPA hits this to render the
+ * acceptance page (store name, role, inviter). `invitee_exists` decides
+ * between the sign-in form (true) and the signup form (false).
+ */
+export interface InvitationLookup {
+  id: string
+  email: string
+  role_name: string | null
+  inviter_email: string | null
+  expires_at: string | null
+  invitee_exists: boolean
+  store: {
+    id: string | null
+    name: string | null
+  }
+}
+
 export interface PermissionRule {
   /** true for `can`, false for `cannot` */
   allow: boolean
@@ -86,6 +104,7 @@ import type {
   DirectUploadCreateParams,
   FulfillmentUpdateParams,
   GiftCardApplyParams,
+  InvitationAcceptParams,
   InvitationCreateParams,
   LineItemCreateParams,
   LineItemUpdateParams,
@@ -306,6 +325,39 @@ export class AdminClient {
      */
     logout: (options?: RequestOptions): Promise<void> =>
       this.request<void>('POST', '/auth/logout', options),
+
+    /**
+     * Public (unauthenticated) lookup of a pending invitation by prefixed ID + token.
+     * Returns just the safe-to-render context (store, role, inviter, invitee_exists)
+     * so the SPA acceptance page can decide between sign-in and signup forms.
+     */
+    lookupInvitation: (
+      id: string,
+      token: string,
+      options?: RequestOptions,
+    ): Promise<InvitationLookup> =>
+      this.request<InvitationLookup>('GET', `/auth/invitations/${id}/lookup`, {
+        ...options,
+        params: { token },
+      }),
+
+    /**
+     * Public (unauthenticated) accept of an invitation. For existing accounts the
+     * caller passes their password; for new accounts they pass password +
+     * confirmation + names. Either path issues a JWT + refresh-token cookie
+     * identical to `login`.
+     */
+    acceptInvitation: (
+      id: string,
+      token: string,
+      params: InvitationAcceptParams,
+      options?: RequestOptions,
+    ): Promise<AuthTokens> =>
+      this.request<AuthTokens>('POST', `/auth/invitations/${id}/accept`, {
+        ...options,
+        params: { token },
+        body: params,
+      }),
   }
 
   // ============================================

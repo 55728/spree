@@ -1,3 +1,4 @@
+import type { InvitationAcceptParams } from '@spree/admin-sdk'
 import { createContext, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { adminClient } from '@/client'
 
@@ -18,6 +19,12 @@ interface AuthContextValue {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  /**
+   * Drives the public invitation-acceptance flow. On success the issued JWT +
+   * refresh-token cookie behave identically to a fresh login — the provider's
+   * normal refresh loop takes over from there.
+   */
+  acceptInvitation: (id: string, token: string, params: InvitationAcceptParams) => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -96,6 +103,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession, scheduleRefresh],
   )
 
+  const acceptInvitation = useCallback(
+    async (id: string, token: string, params: InvitationAcceptParams) => {
+      setIsLoading(true)
+      try {
+        const res = await adminClient.auth.acceptInvitation(id, token, params)
+        applySession(res.token, res.user)
+        scheduleRefresh()
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [applySession, scheduleRefresh],
+  )
+
   const logout = useCallback(async () => {
     try {
       await adminClient.auth.logout()
@@ -135,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        acceptInvitation,
       }}
     >
       {children}
