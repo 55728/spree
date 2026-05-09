@@ -38,6 +38,7 @@ import {
 } from '@/hooks/use-stock-transfers'
 import { Subject } from '@/lib/permissions'
 import '@/tables/stock-transfers'
+import { StockPageTabs } from './-tabs'
 
 const stockTransfersSearchSchema = resourceSearchSchema.extend({
   view: z.string().optional(),
@@ -52,6 +53,7 @@ export const Route = createFileRoute('/_authenticated/$storeId/products/stock/tr
 const SOURCE_NONE = '__external__'
 
 function StockTransfersPage() {
+  const { storeId } = Route.useParams()
   const search = Route.useSearch() as z.infer<typeof stockTransfersSearchSchema>
   const navigate = useNavigate()
 
@@ -76,6 +78,7 @@ function StockTransfersPage() {
 
   return (
     <>
+      <StockPageTabs storeId={storeId} />
       <ResourceTable<StockTransfer>
         tableKey="stock-transfers"
         queryKey="stock-transfers"
