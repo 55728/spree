@@ -168,7 +168,7 @@ module Spree
 
     @@payment_attributes = [:amount, :payment_method_id, :payment_method]
 
-    @@payment_method_attributes = [:name, :type, :description, :active, :display_on, :auto_capture, :position, { metadata: {} }]
+    @@payment_method_attributes = [:name, :type, :description, :active, :display_on, :auto_capture, :position, { metadata: {}, preferences: {} }]
 
     @@payment_session_attributes = [:amount, :payment_method_id, { external_data: {} }]
 

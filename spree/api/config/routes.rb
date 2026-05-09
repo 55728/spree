@@ -187,6 +187,20 @@ Spree::Core::Engine.add_routes do
           end
         end
 
+        # Promotions, with nested actions/rules/coupon codes.
+        resources :promotions do
+          resources :promotion_actions, only: [:index, :show, :create, :update, :destroy]
+          resources :promotion_rules, only: [:index, :show, :create, :update, :destroy]
+          resources :coupon_codes, only: [:index, :show]
+        end
+
+        # Subclass discovery for the promotion editor: `/promotion_actions/types`
+        # and `/promotion_rules/types` enumerate registered subclasses with
+        # their preference schemas. Top-level so the SPA can build the
+        # "Add action / Add rule" pickers without a parent promotion.
+        get 'promotion_actions/types', to: 'promotion_actions#types'
+        get 'promotion_rules/types',   to: 'promotion_rules#types'
+
         # Tags (autocomplete for product/order/user tag inputs)
         resources :tags, only: [:index]
 

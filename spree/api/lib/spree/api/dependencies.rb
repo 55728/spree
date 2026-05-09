@@ -203,6 +203,10 @@ module Spree
         admin_invitation_serializer: 'Spree::Api::V3::Admin::InvitationSerializer',
         admin_role_serializer: 'Spree::Api::V3::Admin::RoleSerializer',
         admin_export_serializer: 'Spree::Api::V3::Admin::ExportSerializer',
+        admin_promotion_serializer: 'Spree::Api::V3::Admin::PromotionSerializer',
+        admin_promotion_action_serializer: 'Spree::Api::V3::Admin::PromotionActionSerializer',
+        admin_promotion_rule_serializer: 'Spree::Api::V3::Admin::PromotionRuleSerializer',
+        admin_coupon_code_serializer: 'Spree::Api::V3::Admin::CouponCodeSerializer',
 
         # platform serializers
         platform_metafield_serializer: 'Spree::Api::V2::Platform::MetafieldSerializer',

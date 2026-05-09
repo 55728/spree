@@ -2,8 +2,11 @@ module Spree
   module Api
     module V3
       module Admin
-        class PaymentMethodsController < ResourceController
-          scoped_resource :settings
+        # CRUD for `Spree::PromotionRule` STI subclasses. Same shape as
+        # PromotionActionsController — only the registry differs
+        # (`Spree.promotions.rules` instead of `Spree.promotions.actions`).
+        class PromotionRulesController < ResourceController
+          scoped_resource :promotions
 
           def create
             klass = resolve_subclass(permitted_params[:type])
@@ -12,9 +15,8 @@ module Spree
             attrs = permitted_params.except(:type, :preferences)
             preferences = permitted_params[:preferences]
 
-            @resource = klass.new(attrs)
+            @resource = klass.new(attrs.merge(promotion: @parent))
             apply_preferences(@resource, preferences) if preferences.present?
-            @resource.stores = [current_store] if @resource.stores.empty?
             authorize_resource!(@resource, :create)
 
             if @resource.save
@@ -41,13 +43,8 @@ module Spree
             end
           end
 
-          # Lists available payment provider subclasses for the create form.
-          # Returns: { data: [{ type, label, description, preference_schema }] }.
-          # The preference_schema array describes the provider-specific
-          # configuration fields, so admin UIs can render a generic
-          # preferences form without hard-coding per-provider knowledge.
           def types
-            authorize! :create, model_class
+            authorize! :read, model_class
 
             render json: { data: model_class.subclasses_with_preference_schema }
           end
@@ -55,39 +52,45 @@ module Spree
           protected
 
           def model_class
-            Spree::PaymentMethod
+            Spree::PromotionRule
           end
 
           def serializer_class
-            Spree.api.admin_payment_method_serializer
+            Spree.api.admin_promotion_rule_serializer
+          end
+
+          def permitted_params
+            params.permit(:type, preferences: {})
+          end
+
+          def set_parent
+            return if action_name == 'types'
+
+            @parent = Spree::Promotion.accessible_by(current_ability, :show)
+                                      .find_by_prefix_id!(params[:promotion_id])
+          end
+
+          def parent_association
+            :promotion_rules
           end
 
           private
 
-          # Looks up `type` against `Spree::PaymentMethod.providers` (the
-          # registered allowlist) so callers can't constantize arbitrary
-          # classes. Returns `Spree::PaymentMethod` itself when type is blank
-          # so the model layer can surface its own validation error.
           def resolve_subclass(type_name)
-            return Spree::PaymentMethod if type_name.blank?
+            return nil if type_name.blank?
 
-            Spree::PaymentMethod.providers.find { |klass| klass.to_s == type_name }
+            Spree.promotions.rules.find { |klass| klass.to_s == type_name }
           end
 
           def render_unknown_type
             render_error(
-              code: 'unknown_payment_method_type',
-              message: Spree.t(:invalid_payment_method_type, scope: :api, default: 'Unknown payment method type'),
+              code: 'unknown_promotion_rule_type',
+              message: Spree.t(:invalid_promotion_rule_type, scope: :api,
+                                                             default: 'Unknown promotion rule type'),
               status: :unprocessable_content
             )
           end
 
-          # Walks the preferences hash and routes each entry through the
-          # typed `preferred_<name>=` setter so values get coerced (boolean,
-          # decimal, integer). Silently skips keys the resource doesn't
-          # recognize — the schema endpoint is the source of truth for
-          # what's settable, and ignoring extras avoids leaking provider
-          # internals through validation errors.
           def apply_preferences(resource, preferences)
             preferences.each do |key, value|
               next unless resource.has_preference?(key.to_sym)
