@@ -3,10 +3,12 @@ module Spree
     module V3
       module Admin
         class TaxCategorySerializer < V3::BaseSerializer
-          typelize name: :string, tax_code: [:string, nullable: true],
+          typelize name: :string,
+                   tax_code: [:string, nullable: true],
+                   description: [:string, nullable: true],
                    is_default: :boolean
 
-          attributes :name, :tax_code, :is_default,
+          attributes :name, :tax_code, :description, :is_default,
                      created_at: :iso8601, updated_at: :iso8601
         end
       end

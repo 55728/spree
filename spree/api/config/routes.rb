@@ -164,7 +164,7 @@ Spree::Core::Engine.add_routes do
         resources :option_types, concerns: :custom_fieldable
 
         # Tax Categories
-        resources :tax_categories, only: [:index, :show]
+        resources :tax_categories
 
         # Store Credit Categories (read-only — for store credit dropdowns)
         resources :store_credit_categories, only: [:index, :show]
@@ -172,8 +172,16 @@ Spree::Core::Engine.add_routes do
         # Stock Locations
         resources :stock_locations
 
+        # Stock Items (write surface — list/show/update/destroy; creation
+        # happens implicitly when variants meet stock locations).
+        resources :stock_items, only: [:index, :show, :update, :destroy]
+
+        # Stock Transfers (move inventory between locations, or receive
+        # from external vendor when source_location_id is omitted).
+        resources :stock_transfers, only: [:index, :show, :create, :destroy]
+
         # Payment Methods
-        resources :payment_methods, only: [:index, :show]
+        resources :payment_methods
 
         # Tags (autocomplete for product/order/user tag inputs)
         resources :tags, only: [:index]
