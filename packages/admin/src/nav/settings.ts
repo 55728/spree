@@ -1,8 +1,17 @@
-import { KeyRoundIcon, StoreIcon, UsersRoundIcon, WarehouseIcon } from 'lucide-react'
+import {
+  ArrowLeftRightIcon,
+  CreditCardIcon,
+  KeyRoundIcon,
+  PercentIcon,
+  StoreIcon,
+  UsersRoundIcon,
+  WarehouseIcon,
+} from 'lucide-react'
 import { Subject } from '@/lib/permissions'
 import { settingsNav } from '@/lib/settings-nav-registry'
 
 settingsNav.addGroup({ key: 'store', label: 'Store', position: 100 })
+settingsNav.addGroup({ key: 'payments', label: 'Payments & taxes', position: 150 })
 settingsNav.addGroup({ key: 'fulfillment', label: 'Fulfillment', position: 200 })
 settingsNav.addGroup({ key: 'team', label: 'Team & access', position: 300 })
 
@@ -17,6 +26,26 @@ settingsNav.add({
 })
 
 settingsNav.add({
+  key: 'settings.payment-methods',
+  label: 'Payment methods',
+  path: '/payment-methods',
+  icon: CreditCardIcon,
+  group: 'payments',
+  position: 100,
+  subject: Subject.PaymentMethod,
+})
+
+settingsNav.add({
+  key: 'settings.tax-categories',
+  label: 'Tax categories',
+  path: '/tax-categories',
+  icon: PercentIcon,
+  group: 'payments',
+  position: 200,
+  subject: Subject.TaxCategory,
+})
+
+settingsNav.add({
   key: 'settings.stock-locations',
   label: 'Stock locations',
   path: '/stock-locations',
@@ -24,6 +53,16 @@ settingsNav.add({
   group: 'fulfillment',
   position: 100,
   subject: Subject.StockLocation,
+})
+
+settingsNav.add({
+  key: 'settings.stock-transfers',
+  label: 'Stock transfers',
+  path: '/stock-transfers',
+  icon: ArrowLeftRightIcon,
+  group: 'fulfillment',
+  position: 200,
+  subject: Subject.StockTransfer,
 })
 
 settingsNav.add({
