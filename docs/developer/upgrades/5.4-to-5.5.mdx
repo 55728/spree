@@ -1,0 +1,101 @@
+---
+title: Upgrading to Spree 5.5
+description: This guide covers upgrading a Spree 5.4 application to Spree 5.5.
+---
+
+<Info>
+  Before proceeding to upgrade, please ensure you're at [Spree 5.4](/developer/upgrades/5.3-to-5.4).
+</Info>
+
+## Upgrade steps
+
+### Update gems
+
+  ```bash
+  bundle update
+  ```
+
+### Fetch and run missing migrations
+
+  ```bash
+  bin/rake spree:install:migrations && bin/rails db:migrate
+  ```
+
+### Schedule the Stock Reservations expiry job
+
+Spree 5.5 introduces time-limited stock reservations during checkout to prevent two customers from buying the same last unit at the same time. Abandoned checkouts leave behind expired reservation rows, and Spree does **not** auto-schedule the cleanup — your application's job runner must run `Spree::StockReservations::ExpireJob` periodically (every minute is the recommended cadence).
+
+If you skip this step, expired reservations accumulate in the table indefinitely. The Quantifier still ignores them at availability-check time (so customers see correct stock), but the table grows unbounded.
+
+#### sidekiq-cron
+
+```yaml
+# config/sidekiq_cron.yml
+expire_stock_reservations:
+  cron: "* * * * *"
+  class: "Spree::StockReservations::ExpireJob"
+  queue: default
+```
+
+#### solid_queue
+
+```yaml
+# config/recurring.yml
+expire_stock_reservations:
+  schedule: every minute
+  class: Spree::StockReservations::ExpireJob
+```
+
+#### good_job
+
+```ruby
+# config/initializers/good_job.rb
+Rails.application.configure do
+  config.good_job.cron = {
+    expire_stock_reservations: {
+      cron: '* * * * *',
+      class: 'Spree::StockReservations::ExpireJob'
+    }
+  }
+end
+```
+
+### (Optional) Tune the reservation TTL
+
+The default reservation TTL is **10 minutes**. To override globally:
+
+```ruby
+# config/initializers/spree.rb
+Spree::Config[:default_stock_reservation_ttl_minutes] = 15
+```
+
+To override per Store, set the preference on the Store record:
+
+```ruby
+store.update!(preferred_stock_reservation_ttl_minutes: 20)
+```
+
+The per-Store value, when set, takes precedence over the global default.
+
+### (Optional) Disable Stock Reservations
+
+Stock reservations are enabled by default. To opt out and revert to pre-5.5 behavior (no holds during checkout, Quantifier returns raw `count_on_hand`):
+
+```ruby
+# config/initializers/spree.rb
+Spree::Config[:stock_reservations_enabled] = false
+```
+
+The Quantifier short-circuits before any reservation query when this is `false`, so there's no runtime cost and no table growth.
+
+## Behavior changes worth knowing
+
+### Cart changes during checkout can now fail with insufficient stock
+
+When a customer is in checkout and tries to add an item, increase a quantity, or remove a line item, Spree now re-checks whether the cart still fits in available stock (subtracting what other customers are holding in their own active checkouts). If it doesn't, the change is rejected up front instead of silently completing and failing later at order submission.
+
+Storefronts and custom integrations that act on the cart should expect this new failure path and surface the error to the customer.
+
+### Storefront availability drops faster under contention
+
+Other customers now see availability reduced by all active reservations, not just by completed orders. This is the intended fix to overselling — but if you have a real-time inventory dashboard that reads `count_on_hand` directly (rather than going through Spree's availability checks), you'll want to expose a "Reserved" axis to merchants so they can see in-checkout demand.

@@ -174,6 +174,7 @@ module Spree
     has_many :customer_returns, class_name: 'Spree::CustomerReturn', through: :return_authorizations
     has_many :line_item_adjustments, through: :line_items, source: :adjustments
     has_many :inventory_units, inverse_of: :order, class_name: 'Spree::InventoryUnit'
+    has_many :stock_reservations, class_name: 'Spree::StockReservation', inverse_of: :order, dependent: :destroy
     has_many :return_items, through: :inventory_units, class_name: 'Spree::ReturnItem'
     has_many :variants, through: :line_items
     has_many :products, through: :variants
@@ -367,6 +368,13 @@ module Spree
 
     def completed?
       completed_at.present?
+    end
+
+    # True when the order is mid-checkout: past the `cart` state but not yet
+    # completed or canceled. Used by stock reservation hooks and any flow
+    # that should only run during the active checkout phase.
+    def in_checkout?
+      !cart? && !complete? && !canceled?
     end
 
     def draft?
