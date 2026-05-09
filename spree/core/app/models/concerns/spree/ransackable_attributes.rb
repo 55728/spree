@@ -6,7 +6,11 @@ module Spree::RansackableAttributes
     class_attribute :whitelisted_ransackable_scopes
 
     class_attribute :default_ransackable_attributes
-    self.default_ransackable_attributes = %w[id name updated_at created_at]
+    # `position` is included so any `acts_as_list` model is sortable by it
+    # without each subclass having to opt in. Ransack ignores attributes
+    # the model doesn't actually expose, so this is a no-op for tables
+    # without a position column.
+    self.default_ransackable_attributes = %w[id name updated_at created_at position]
 
     def self.ransackable_associations(*_args)
       base = whitelisted_ransackable_associations || []

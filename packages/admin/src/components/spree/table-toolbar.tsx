@@ -50,6 +50,8 @@ interface TableToolbarProps {
   /** Title displayed in the toolbar header */
   title?: string
   actions?: React.ReactNode
+  /** Hide the sort dropdown — used when the table is drag-reorderable, where free sorting would defeat the drag. */
+  hideSort?: boolean
 }
 
 // ============================================================================
@@ -113,6 +115,7 @@ export function TableToolbar({
   allColumns,
   title,
   actions,
+  hideSort = false,
 }: TableToolbarProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -185,8 +188,8 @@ export function TableToolbar({
             </Popover>
           )}
 
-          {/* Sort dropdown */}
-          {sortableColumns.length > 0 && (
+          {/* Sort dropdown — hidden when the table is drag-reorderable, since free sorting would defeat the drag. */}
+          {!hideSort && sortableColumns.length > 0 && (
             <SortDropdown columns={sortableColumns} sort={sort} onSortChange={onSortChange} />
           )}
 

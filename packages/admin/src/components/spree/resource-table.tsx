@@ -176,12 +176,17 @@ export function ResourceTable<T extends Record<string, any>>({
     columns: urlColumns,
   } = searchParams
 
+  // When the table is reorderable, sort is locked to the position field
+  // ascending — anything else makes drag-and-drop meaningless. Otherwise
+  // fall through to the URL params, then the table's declared default,
+  // then a sensible fallback.
+  const positionField = reorder?.positionField ?? 'position'
   const defaultSort = table.defaultSort ?? {
     field: 'updated_at',
     direction: 'desc' as const,
   }
-  const sort = urlSort ?? defaultSort.field
-  const dir = urlDir ?? defaultSort.direction
+  const sort = reorder ? positionField : (urlSort ?? defaultSort.field)
+  const dir: 'asc' | 'desc' = reorder ? 'asc' : (urlDir ?? defaultSort.direction)
 
   const [searchInput, setSearchInput] = useState(search ?? '')
   const deferredSearch = useDeferredValue(searchInput)
@@ -232,8 +237,7 @@ export function ResourceTable<T extends Record<string, any>>({
     setLocalRows(fetchedRows)
   }, [fetchedRows])
 
-  const positionField = reorder?.positionField ?? 'position'
-  const reorderActive = !!reorder && sort === positionField && dir === 'asc'
+  const reorderActive = !!reorder
   const rows = reorderActive ? localRows : fetchedRows
 
   // dnd-kit sensors: pointer for mouse/touch (5px activation distance keeps
@@ -332,6 +336,7 @@ export function ResourceTable<T extends Record<string, any>>({
         allColumns={table.columns}
         title={title ?? table.title}
         actions={resolvedActions}
+        hideSort={reorderActive}
       />
       <CardContent className="p-0">
         <Table>
