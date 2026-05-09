@@ -123,6 +123,13 @@ import type {
   PaymentMethodType,
   PaymentMethodUpdateParams,
   ProductUpdateParams,
+  PromotionActionCreateParams,
+  PromotionActionUpdateParams,
+  PromotionCreateParams,
+  PromotionRuleCreateParams,
+  PromotionRuleUpdateParams,
+  PromotionUpdateParams,
+  ResourceTypeDefinition,
   StockItemUpdateParams,
   StockLocationCreateParams,
   StockLocationUpdateParams,
@@ -140,6 +147,7 @@ import type {
   AdminUser,
   ApiKey,
   Category,
+  CouponCode,
   Country,
   CreditCard,
   Customer,
@@ -155,6 +163,9 @@ import type {
   Payment,
   PaymentMethod,
   Product,
+  Promotion,
+  PromotionAction,
+  PromotionRule,
   Refund,
   Role,
   StockItem,
@@ -911,6 +922,190 @@ export class AdminClient {
 
     types: (options?: RequestOptions): Promise<{ data: PaymentMethodType[] }> =>
       this.request<{ data: PaymentMethodType[] }>('GET', '/payment_methods/types', options),
+  }
+
+  // ============================================
+  // Promotions (with nested actions, rules, coupon codes)
+  // ============================================
+
+  readonly promotions = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<Promotion>> =>
+      this.request<PaginatedResponse<Promotion>>('GET', '/promotions', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<Promotion> =>
+      this.request<Promotion>('GET', `/promotions/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: PromotionCreateParams, options?: RequestOptions): Promise<Promotion> =>
+      this.request<Promotion>('POST', '/promotions', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: PromotionUpdateParams,
+      options?: RequestOptions,
+    ): Promise<Promotion> =>
+      this.request<Promotion>('PATCH', `/promotions/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/promotions/${id}`, options),
+
+    actions: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<PromotionAction>> =>
+        this.request<PaginatedResponse<PromotionAction>>(
+          'GET',
+          `/promotions/${promotionId}/promotion_actions`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (
+        promotionId: string,
+        id: string,
+        options?: RequestOptions,
+      ): Promise<PromotionAction> =>
+        this.request<PromotionAction>(
+          'GET',
+          `/promotions/${promotionId}/promotion_actions/${id}`,
+          options,
+        ),
+
+      create: (
+        promotionId: string,
+        params: PromotionActionCreateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionAction> =>
+        this.request<PromotionAction>(
+          'POST',
+          `/promotions/${promotionId}/promotion_actions`,
+          { ...options, body: params },
+        ),
+
+      update: (
+        promotionId: string,
+        id: string,
+        params: PromotionActionUpdateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionAction> =>
+        this.request<PromotionAction>(
+          'PATCH',
+          `/promotions/${promotionId}/promotion_actions/${id}`,
+          { ...options, body: params },
+        ),
+
+      delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
+        this.request<void>(
+          'DELETE',
+          `/promotions/${promotionId}/promotion_actions/${id}`,
+          options,
+        ),
+    },
+
+    rules: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<PromotionRule>> =>
+        this.request<PaginatedResponse<PromotionRule>>(
+          'GET',
+          `/promotions/${promotionId}/promotion_rules`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (
+        promotionId: string,
+        id: string,
+        options?: RequestOptions,
+      ): Promise<PromotionRule> =>
+        this.request<PromotionRule>(
+          'GET',
+          `/promotions/${promotionId}/promotion_rules/${id}`,
+          options,
+        ),
+
+      create: (
+        promotionId: string,
+        params: PromotionRuleCreateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionRule> =>
+        this.request<PromotionRule>(
+          'POST',
+          `/promotions/${promotionId}/promotion_rules`,
+          { ...options, body: params },
+        ),
+
+      update: (
+        promotionId: string,
+        id: string,
+        params: PromotionRuleUpdateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionRule> =>
+        this.request<PromotionRule>(
+          'PATCH',
+          `/promotions/${promotionId}/promotion_rules/${id}`,
+          { ...options, body: params },
+        ),
+
+      delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
+        this.request<void>(
+          'DELETE',
+          `/promotions/${promotionId}/promotion_rules/${id}`,
+          options,
+        ),
+    },
+
+    couponCodes: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<CouponCode>> =>
+        this.request<PaginatedResponse<CouponCode>>(
+          'GET',
+          `/promotions/${promotionId}/coupon_codes`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<CouponCode> =>
+        this.request<CouponCode>(
+          'GET',
+          `/promotions/${promotionId}/coupon_codes/${id}`,
+          options,
+        ),
+    },
+  }
+
+  readonly promotionActions = {
+    types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
+      this.request<{ data: ResourceTypeDefinition[] }>(
+        'GET',
+        '/promotion_actions/types',
+        options,
+      ),
+  }
+
+  readonly promotionRules = {
+    types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
+      this.request<{ data: ResourceTypeDefinition[] }>(
+        'GET',
+        '/promotion_rules/types',
+        options,
+      ),
   }
 
   // ============================================
