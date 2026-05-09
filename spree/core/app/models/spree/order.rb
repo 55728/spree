@@ -9,6 +9,11 @@ module Spree
   class Order < Spree.base_class
     has_prefix_id :or  # Stripe: or_
 
+    # Legacy free-text `channel` column was replaced by the `channel_id` FK
+    # (see 6.0-order-routing.md). The string column stays in the DB so the
+    # 5.4-to-5.5 backfill rake can read it; AR ignores it everywhere else.
+    self.ignored_columns += ['channel']
+
     PAYMENT_STATES = %w(balance_due credit_owed failed paid void)
     SHIPMENT_STATES = %w(backorder canceled partial pending ready shipped)
     LINE_ITEM_REMOVABLE_STATES = %w(cart address delivery payment confirm resumed)
@@ -160,6 +165,7 @@ module Spree
     belongs_to :store, class_name: 'Spree::Store'
     belongs_to :market, class_name: 'Spree::Market', optional: true
     belongs_to :channel, class_name: 'Spree::Channel', optional: true
+    belongs_to :preferred_stock_location, class_name: 'Spree::StockLocation', optional: true
 
     with_options dependent: :destroy do
       has_many :state_changes, as: :stateful, class_name: 'Spree::StateChange'
@@ -499,7 +505,9 @@ module Spree
     end
 
     def ensure_channel_presence
-      self.channel ||= store&.default_channel
+      return if channel_id.present?
+
+      self.channel = store&.default_channel
     end
 
     def allow_cancel?
@@ -763,7 +771,31 @@ module Spree
       # and are not returned or shipped should be deleted
       inventory_units.on_hand_or_backordered.delete_all
 
-      self.shipments = Spree::Stock::Coordinator.new(self).shipments
+      self.shipments = order_routing_strategy.for_allocation.map do |package|
+        package.to_shipment.tap { |s| s.address_id = ship_address_id }
+      end
+    end
+
+    # @return [Spree::OrderRouting::Strategy::Base]
+    def order_routing_strategy
+      klass_name = channel&.preferred_order_routing_strategy.presence ||
+                   store.preferred_order_routing_strategy
+      klass = klass_name&.safe_constantize
+
+      unless klass && klass <= Spree::OrderRouting::Strategy::Base
+        raise ArgumentError, "Invalid order routing strategy: #{klass_name.inspect}"
+      end
+
+      klass.new(order: self)
+    end
+
+    # Cascade for the `preferred_location` rule kind. Channel and B2B sources
+    # are layered in by their respective plans.
+    #
+    # @return [Integer, nil]
+    def inferred_preferred_stock_location_id
+      preferred_stock_location_id.presence ||
+        created_by&.try(:preferred_stock_location_id)
     end
 
     # Returns the total weight of the inventory units in the order

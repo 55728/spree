@@ -55,6 +55,9 @@ module Spree
     preference :digital_asset_authorized_clicks, :integer, default: 5
     preference :digital_asset_authorized_days, :integer, default: 7
     preference :digital_asset_link_expire_time, :integer, default: 300
+    # Class name of the Spree::OrderRouting::Strategy::Base subclass that
+    # decides which StockLocation fulfills which items.
+    preference :order_routing_strategy, :string, default: 'Spree::OrderRouting::Strategy::Rules'
 
     #
     # Associations
@@ -110,6 +113,7 @@ module Spree
     has_many :webhook_deliveries, through: :webhook_endpoints, class_name: 'Spree::WebhookDelivery'
 
     has_many :channels, class_name: 'Spree::Channel', dependent: :destroy
+    has_many :order_routing_rules, through: :channels, class_name: 'Spree::OrderRoutingRule'
 
     has_many :customer_groups, class_name: 'Spree::CustomerGroup', dependent: :destroy, inverse_of: :store
 
@@ -180,11 +184,8 @@ module Spree
       Spree::Store.default&.supported_locales_list || []
     end
 
-    # The Channel new orders default to when no other context is provided.
-    # 5.5 always seeds an 'online' channel; merchants can rename or add
-    # alongside it in 6.0.
     def default_channel
-      channels.find_by(code: 'online') || channels.active.first
+      channels.find_by(code: Spree::Channel::DEFAULT_CODE) || channels.active.first
     end
 
     # @deprecated Use Markets instead. Will be removed in Spree 5.5.
@@ -413,12 +414,10 @@ module Spree
       end
     end
 
-    # 5.5 ships one Channel per Store ('online'). 6.0 channels admin lets
-    # merchants add POS / wholesale / etc. See docs/plans/6.0-channels-catalogs-b2b.md.
     def seed_default_channel
       return if channels.any?
 
-      channels.create!(name: 'Online Store', code: 'online')
+      channels.create!(name: 'Online Store', code: Spree::Channel::DEFAULT_CODE)
     end
 
     def ensure_default_taxonomies_are_created

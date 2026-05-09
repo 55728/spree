@@ -71,4 +71,25 @@ RSpec.describe Spree::Channel, type: :model do
       expect(channel.prefixed_id).to start_with('ch_')
     end
   end
+
+  describe '#seed_default_order_routing_rules' do
+    it 'creates the three built-in rules in priority order on create' do
+      expect { described_class.create!(store: store, name: 'POS', code: 'pos') }
+        .to change(Spree::OrderRoutingRule, :count).by(3)
+
+      rules = described_class.find_by(code: 'pos').order_routing_rules.ordered
+      expect(rules.map(&:class)).to eq([
+        Spree::OrderRouting::Rules::PreferredLocation,
+        Spree::OrderRouting::Rules::MinimizeSplits,
+        Spree::OrderRouting::Rules::DefaultLocation
+      ])
+      expect(rules.map(&:position)).to eq([1, 2, 3])
+    end
+
+    it 'is idempotent — re-invoking does not create duplicates' do
+      channel = described_class.create!(store: store, name: 'POS', code: 'pos')
+      expect { channel.send(:seed_default_order_routing_rules) }
+        .not_to change(Spree::OrderRoutingRule, :count)
+    end
+  end
 end

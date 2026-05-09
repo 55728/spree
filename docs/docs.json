@@ -309,6 +309,16 @@
             "description": "Step-by-step guides for common tasks",
             "groups": [
               {
+                "group": "Order Routing",
+                "icon": "route",
+                "pages": ["developer/how-to/custom-order-routing"]
+              },
+              {
+                "group": "Stock Splitters",
+                "icon": "boxes-stacked",
+                "pages": ["developer/how-to/custom-stock-splitter"]
+              },
+              {
                 "group": "Payments",
                 "icon": "credit-card",
                 "pages": ["developer/how-to/custom-payment-method"]
