@@ -207,7 +207,21 @@ function CreatePaymentMethodSheet({
                 name="type"
                 control={form.control}
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(next) => {
+                      field.onChange(next)
+                      // Prefill the Name field with the provider's label
+                      // — but only if the admin hasn't typed something
+                      // themselves yet. `dirtyFields.name` is true after
+                      // any keystroke in the name input, so we leave it
+                      // alone in that case.
+                      const label = providerTypes.find((t) => t.type === next)?.label
+                      if (label && !form.formState.dirtyFields.name) {
+                        form.setValue('name', label, { shouldDirty: false })
+                      }
+                    }}
+                  >
                     <SelectTrigger id="type" aria-invalid={!!form.formState.errors.type}>
                       <SelectValue placeholder={loadingTypes ? 'Loading…' : 'Select a provider'}>
                         {(value) =>
