@@ -435,6 +435,57 @@ export interface StockLocationUpdateParams {
   pickup_instructions?: string | null
 }
 
+export interface StockItemUpdateParams {
+  count_on_hand?: number
+  backorderable?: boolean
+  metadata?: Record<string, unknown>
+}
+
+export interface StockTransferCreateParams {
+  /** Omit for a vendor receive (external stock arriving at the destination). */
+  source_location_id?: string
+  destination_location_id: string
+  reference?: string
+  variants: Array<{ variant_id: string; quantity: number }>
+}
+
+export interface TaxCategoryCreateParams {
+  name: string
+  tax_code?: string | null
+  description?: string | null
+  is_default?: boolean
+}
+
+export interface TaxCategoryUpdateParams {
+  name?: string
+  tax_code?: string | null
+  description?: string | null
+  is_default?: boolean
+}
+
+export interface PaymentMethodCreateParams {
+  /** Fully-qualified STI subclass name, e.g. 'Spree::PaymentMethod::Check'. */
+  type: string
+  name: string
+  description?: string | null
+  active?: boolean
+  /** 'front_end' | 'back_end' | 'both'. */
+  display_on?: string
+  auto_capture?: boolean | null
+  position?: number
+  metadata?: Record<string, unknown>
+}
+
+export interface PaymentMethodUpdateParams {
+  name?: string
+  description?: string | null
+  active?: boolean
+  display_on?: string
+  auto_capture?: boolean | null
+  position?: number
+  metadata?: Record<string, unknown>
+}
+
 /**
  * Built-in `Spree::Export` subclasses. The server validates `type` against
  * the configured allowlist (`Spree::Export.available_types`); a plugin can

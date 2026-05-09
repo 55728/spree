@@ -119,11 +119,17 @@ import type {
   OrderCreateParams,
   OrderUpdateParams,
   PaymentCreateParams,
+  PaymentMethodCreateParams,
+  PaymentMethodUpdateParams,
   ProductUpdateParams,
+  StockItemUpdateParams,
   StockLocationCreateParams,
   StockLocationUpdateParams,
+  StockTransferCreateParams,
   StoreCreditApplyParams,
   StoreUpdateParams,
+  TaxCategoryCreateParams,
+  TaxCategoryUpdateParams,
   VariantCreateParams,
   VariantUpdateParams,
 } from './params'
@@ -150,7 +156,9 @@ import type {
   Product,
   Refund,
   Role,
+  StockItem,
   StockLocation,
+  StockTransfer,
   Store,
   StoreCredit,
   StoreCreditCategory,
@@ -886,6 +894,19 @@ export class AdminClient {
         ...options,
         params: getParams(params),
       }),
+
+    create: (params: PaymentMethodCreateParams, options?: RequestOptions): Promise<PaymentMethod> =>
+      this.request<PaymentMethod>('POST', '/payment_methods', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: PaymentMethodUpdateParams,
+      options?: RequestOptions,
+    ): Promise<PaymentMethod> =>
+      this.request<PaymentMethod>('PATCH', `/payment_methods/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/payment_methods/${id}`, options),
   }
 
   // ============================================
@@ -1155,6 +1176,29 @@ export class AdminClient {
         ...options,
         params: params ? transformListParams(params) : undefined,
       }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<TaxCategory> =>
+      this.request<TaxCategory>('GET', `/tax_categories/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: TaxCategoryCreateParams, options?: RequestOptions): Promise<TaxCategory> =>
+      this.request<TaxCategory>('POST', '/tax_categories', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: TaxCategoryUpdateParams,
+      options?: RequestOptions,
+    ): Promise<TaxCategory> =>
+      this.request<TaxCategory>('PATCH', `/tax_categories/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/tax_categories/${id}`, options),
   }
 
   // ============================================
@@ -1218,6 +1262,77 @@ export class AdminClient {
 
     delete: (id: string, options?: RequestOptions): Promise<void> =>
       this.request<void>('DELETE', `/stock_locations/${id}`, options),
+  }
+
+  // ============================================
+  // Stock Items
+  // ============================================
+
+  readonly stockItems = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<StockItem>> =>
+      this.request<PaginatedResponse<StockItem>>('GET', '/stock_items', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<StockItem> =>
+      this.request<StockItem>('GET', `/stock_items/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    update: (
+      id: string,
+      params: StockItemUpdateParams,
+      options?: RequestOptions,
+    ): Promise<StockItem> =>
+      this.request<StockItem>('PATCH', `/stock_items/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/stock_items/${id}`, options),
+  }
+
+  // ============================================
+  // Stock Transfers
+  // ============================================
+
+  /**
+   * Inventory movement between stock locations, or external → location for
+   * receives. Pass `source_location_id` for transfers; omit it to record a
+   * vendor receive (external stock arriving at the destination).
+   */
+  readonly stockTransfers = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<StockTransfer>> =>
+      this.request<PaginatedResponse<StockTransfer>>('GET', '/stock_transfers', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<StockTransfer> =>
+      this.request<StockTransfer>('GET', `/stock_transfers/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: StockTransferCreateParams, options?: RequestOptions): Promise<StockTransfer> =>
+      this.request<StockTransfer>('POST', '/stock_transfers', { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/stock_transfers/${id}`, options),
   }
 
   // ============================================
