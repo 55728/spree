@@ -55,13 +55,26 @@ module Spree
 
       # STI subclasses share the parent's `model_name`, so calling
       # `klass.model_name.human` would return "Payment Method" for every
-      # entry. Derive a human label from the demodulized class name
-      # ("Spree::PaymentMethod::BogusGateway" → "Bogus Gateway") and let
-      # individual subclasses override via a class-level `display_name`.
+      # entry. Subclasses can override by defining a class-level
+      # `display_name`. Otherwise:
+      #
+      #   Spree::PaymentMethod::Check       → "Check"
+      #   Spree::Gateway::Bogus             → "Bogus"
+      #   SpreeStripe::Gateway              → "Stripe"
+      #   SpreeAdyen::Gateway               → "Adyen"
+      #
+      # The "Gateway" branch handles the gem convention where each
+      # provider gem ships a top-level `Gateway` class (so demodulize
+      # would collapse them all to "Gateway"). Fall back to the outer
+      # module, with a leading `Spree` namespace stripped.
       def subclass_label(klass)
         return klass.display_name if klass.respond_to?(:display_name) && klass.display_name.present?
 
-        klass.to_s.demodulize.titleize
+        leaf = klass.to_s.demodulize
+        return leaf.titleize unless leaf == 'Gateway'
+
+        outer = klass.to_s.split('::').first.to_s
+        outer.delete_prefix('Spree').presence&.titleize || leaf.titleize
       end
 
       private

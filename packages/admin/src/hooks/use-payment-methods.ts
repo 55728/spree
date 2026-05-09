@@ -44,9 +44,11 @@ export function usePaymentMethod(id: string | undefined) {
 }
 
 export function useCreatePaymentMethod() {
+  // Invalidate the types registry too — the server filters out installed
+  // providers, so the picker should drop the just-added one.
   return useResourceMutation<PaymentMethod, Error, PaymentMethodCreateParams>({
     mutationFn: (params) => adminClient.paymentMethods.create(params),
-    invalidate: [paymentMethodsQueryKey],
+    invalidate: [paymentMethodsQueryKey, paymentMethodTypesQueryKey],
     successMessage: 'Payment method created',
     errorMessage: 'Failed to create payment method',
   })
@@ -66,7 +68,7 @@ export function useDeletePaymentMethod() {
 
   return useResourceMutation<void, Error, string>({
     mutationFn: (id) => adminClient.paymentMethods.delete(id),
-    invalidate: [paymentMethodsQueryKey],
+    invalidate: [paymentMethodsQueryKey, paymentMethodTypesQueryKey],
     successMessage: 'Payment method deleted',
     errorMessage: 'Failed to delete payment method',
     onSuccess: (_data, id) => {

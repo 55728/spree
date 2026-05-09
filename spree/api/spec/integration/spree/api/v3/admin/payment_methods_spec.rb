@@ -56,12 +56,22 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       response '200', 'provider types found' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
 
+        before do
+          # Install StoreCredit in the store so we can verify the picker
+          # filters out providers that are already configured. (Check is
+          # also installed via the let!(:payment_method), but other tests
+          # in this file delete it, so it's order-dependent.)
+          Spree::PaymentMethod::StoreCredit.create!(name: 'Store Credit', stores: [store])
+        end
+
         run_test! do |response|
           data = JSON.parse(response.body)['data']
           expect(data).to be_an(Array)
           expect(data).to all(include('type', 'label'))
-          # The seed data set always registers Spree::PaymentMethod::Check.
-          expect(data.map { |t| t['type'] }).to include('Spree::PaymentMethod::Check')
+          # StoreCredit was just installed → must be filtered out.
+          expect(data.map { |t| t['type'] }).not_to include('Spree::PaymentMethod::StoreCredit')
+          # Bogus is registered but not installed → must show up.
+          expect(data.map { |t| t['type'] }).to include('Spree::Gateway::Bogus')
         end
       end
     end
