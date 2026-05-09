@@ -120,6 +120,7 @@ import type {
   OrderUpdateParams,
   PaymentCreateParams,
   PaymentMethodCreateParams,
+  PaymentMethodType,
   PaymentMethodUpdateParams,
   ProductUpdateParams,
   StockItemUpdateParams,
@@ -907,6 +908,9 @@ export class AdminClient {
 
     delete: (id: string, options?: RequestOptions): Promise<void> =>
       this.request<void>('DELETE', `/payment_methods/${id}`, options),
+
+    types: (options?: RequestOptions): Promise<{ data: PaymentMethodType[] }> =>
+      this.request<{ data: PaymentMethodType[] }>('GET', '/payment_methods/types', options),
   }
 
   // ============================================

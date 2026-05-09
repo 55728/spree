@@ -493,6 +493,16 @@ export interface PaymentMethodUpdateParams {
 }
 
 /**
+ * One entry returned by `GET /payment_methods/types` — the registered list
+ * of available STI subclasses for the create form.
+ */
+export interface PaymentMethodType {
+  type: string
+  label: string
+  description: string | null
+}
+
+/**
  * Built-in `Spree::Export` subclasses. The server validates `type` against
  * the configured allowlist (`Spree::Export.available_types`); a plugin can
  * register additional types, which arrive here as the trailing `string & {}`
