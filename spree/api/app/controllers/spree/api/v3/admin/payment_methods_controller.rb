@@ -3,43 +3,12 @@ module Spree
     module V3
       module Admin
         class PaymentMethodsController < ResourceController
+          include Spree::Api::V3::Admin::SubclassedResource
+
           scoped_resource :settings
 
-          def create
-            klass = resolve_subclass(permitted_params[:type])
-            return render_unknown_type unless klass
-
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
-
-            @resource = klass.new(attrs)
-            apply_preferences(@resource, preferences) if preferences.present?
-            @resource.stores = [current_store] if @resource.stores.empty?
-            authorize_resource!(@resource, :create)
-
-            if @resource.save
-              render json: serialize_resource(@resource), status: :created
-            else
-              render_validation_error(@resource.errors)
-            end
-          end
-
-          def update
-            @resource = find_resource
-            authorize_resource!(@resource, :update)
-
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
-
-            @resource.assign_attributes(attrs)
-            apply_preferences(@resource, preferences) if preferences.present?
-
-            if @resource.save
-              render json: serialize_resource(@resource)
-            else
-              render_validation_error(@resource.errors)
-            end
-          end
+          subclassed_via -> { Spree::PaymentMethod.providers },
+                         unknown_type_error: 'unknown_payment_method_type'
 
           # Lists available payment provider subclasses for the create form.
           # Returns: { data: [{ type, label, description, preference_schema }] }.
@@ -64,36 +33,11 @@ module Spree
 
           private
 
-          # Looks up `type` against `Spree::PaymentMethod.providers` (the
-          # registered allowlist) so callers can't constantize arbitrary
-          # classes. Returns `Spree::PaymentMethod` itself when type is blank
-          # so the model layer can surface its own validation error.
-          def resolve_subclass(type_name)
-            return Spree::PaymentMethod if type_name.blank?
-
-            Spree::PaymentMethod.providers.find { |klass| klass.to_s == type_name }
-          end
-
-          def render_unknown_type
-            render_error(
-              code: 'unknown_payment_method_type',
-              message: Spree.t(:invalid_payment_method_type, scope: :api, default: 'Unknown payment method type'),
-              status: :unprocessable_content
-            )
-          end
-
-          # Walks the preferences hash and routes each entry through the
-          # typed `preferred_<name>=` setter so values get coerced (boolean,
-          # decimal, integer). Silently skips keys the resource doesn't
-          # recognize — the schema endpoint is the source of truth for
-          # what's settable, and ignoring extras avoids leaking provider
-          # internals through validation errors.
-          def apply_preferences(resource, preferences)
-            preferences.each do |key, value|
-              next unless resource.has_preference?(key.to_sym)
-
-              resource.set_preference(key.to_sym, value)
-            end
+          # New payment methods get scoped to the current store automatically.
+          def build_subclassed_resource(klass, attrs)
+            resource = klass.new(attrs)
+            resource.stores = [current_store] if resource.stores.empty?
+            resource
           end
         end
       end

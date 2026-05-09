@@ -90,7 +90,7 @@ function EditPromotionPage() {
         starts_at: promotion.starts_at ? promotion.starts_at.slice(0, 16) : '',
         expires_at: promotion.expires_at ? promotion.expires_at.slice(0, 16) : '',
         usage_limit: promotion.usage_limit ?? undefined,
-        match_policy: (promotion.match_policy as 'all' | 'any') ?? 'all',
+        match_policy: promotion.match_policy,
         advertise: promotion.advertise,
       })
     }
@@ -295,7 +295,7 @@ function PromotionRulesCard({
   matchPolicy,
 }: {
   promotionId: string
-  matchPolicy: string
+  matchPolicy: 'all' | 'any'
 }) {
   const { data: rulesData } = usePromotionRules(promotionId)
   const { data: typesData } = usePromotionRuleTypes()
@@ -397,9 +397,7 @@ function RuleRow({
       className="flex w-full items-center justify-between rounded-md border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium">
-          {rule.label ?? rule.type.replace(/^Spree::Promotion::Rules::/, '')}
-        </div>
+        <div className="text-sm font-medium">{rule.label}</div>
         {Object.keys(rule.preferences ?? {}).length > 0 && (
           <div className="truncate text-xs text-muted-foreground">
             {Object.entries(rule.preferences as Record<string, unknown>)
@@ -530,9 +528,7 @@ function RuleEditSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>
-            {rule.label ?? rule.type.replace(/^Spree::Promotion::Rules::/, '')}
-          </SheetTitle>
+          <SheetTitle>{rule.label}</SheetTitle>
           <SheetDescription>Tune the rule's parameters.</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
@@ -671,9 +667,7 @@ function ActionRow({
       className="flex w-full items-center justify-between rounded-md border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium">
-          {action.label ?? action.type.replace(/^Spree::Promotion::Actions::/, '')}
-        </div>
+        <div className="text-sm font-medium">{action.label}</div>
         {Object.keys(action.preferences ?? {}).length > 0 && (
           <div className="truncate text-xs text-muted-foreground">
             {Object.entries(action.preferences as Record<string, unknown>)
@@ -802,9 +796,7 @@ function ActionEditSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>
-            {action.label ?? action.type.replace(/^Spree::Promotion::Actions::/, '')}
-          </SheetTitle>
+          <SheetTitle>{action.label}</SheetTitle>
           <SheetDescription>Configure the action's parameters.</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
@@ -851,35 +843,71 @@ function ActionEditSheet({
 // ============================================================================
 
 function PromotionCouponCodesCard({ promotionId }: { promotionId: string }) {
-  const { data: codesData } = usePromotionCouponCodes(promotionId, { limit: 50 })
+  const [page, setPage] = useState(1)
+  const { data: codesData, isFetching } = usePromotionCouponCodes(promotionId, {
+    limit: 50,
+    page,
+  })
   const codes = codesData?.data ?? []
+  const totalCount = codesData?.meta?.count ?? codes.length
+  const totalPages = codesData?.meta?.pages ?? 1
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Coupon codes</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Auto-generated codes for this promotion. Codes are read-only; regenerate by changing the
-          promotion's number-of-codes setting.
+          {totalCount > 0
+            ? `${totalCount} auto-generated codes. Read-only; regenerate by changing the promotion's number-of-codes setting.`
+            : "Auto-generated codes for this promotion. Codes are read-only; regenerate by changing the promotion's number-of-codes setting."}
         </p>
       </CardHeader>
       <CardContent>
         {codes.length === 0 ? (
           <p className="text-sm text-muted-foreground">No codes generated yet.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {codes.map((c) => (
-              <code
-                key={c.id}
-                className={`rounded border px-2 py-1 font-mono text-xs ${
-                  c.state && c.state !== 'unused' ? 'text-muted-foreground line-through' : ''
-                }`}
-                title={c.state ?? undefined}
-              >
-                {c.code}
-              </code>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {codes.map((c) => (
+                <code
+                  key={c.id}
+                  className={`rounded border px-2 py-1 font-mono text-xs ${
+                    c.state && c.state !== 'unused' ? 'text-muted-foreground line-through' : ''
+                  }`}
+                  title={c.state ?? undefined}
+                >
+                  {c.code}
+                </code>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || isFetching}
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages || isFetching}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

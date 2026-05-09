@@ -1,7 +1,13 @@
-import type { PaymentMethod } from '@spree/admin-sdk'
+import type { PaymentMethod, PaymentMethodDisplayOn } from '@spree/admin-sdk'
 import { CreditCardIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { defineTable } from '@/lib/table-registry'
+
+const DISPLAY_ON_LABELS: Record<PaymentMethodDisplayOn, string> = {
+  both: 'Storefront + Admin',
+  front_end: 'Storefront only',
+  back_end: 'Admin only',
+}
 
 defineTable<PaymentMethod>('payment-methods', {
   title: 'Payment Methods',
@@ -47,12 +53,7 @@ defineTable<PaymentMethod>('payment-methods', {
       label: 'Visible on',
       filterable: true,
       default: true,
-      render: (pm) => {
-        if (pm.display_on === 'both') return 'Storefront + Admin'
-        if (pm.display_on === 'front_end') return 'Storefront only'
-        if (pm.display_on === 'back_end') return 'Admin only'
-        return pm.display_on
-      },
+      render: (pm) => DISPLAY_ON_LABELS[pm.display_on as PaymentMethodDisplayOn] ?? pm.display_on,
     },
     {
       key: 'active',

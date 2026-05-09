@@ -6,46 +6,13 @@ module Spree
         # nested under a promotion; the create body picks the subclass via
         # `type` and the typed-preferences shape (`preferences: {...}`).
         class PromotionActionsController < ResourceController
+          include Spree::Api::V3::Admin::SubclassedResource
+
           scoped_resource :promotions
 
-          def create
-            klass = resolve_subclass(permitted_params[:type])
-            return render_unknown_type unless klass
+          subclassed_via -> { Spree.promotions.actions },
+                         unknown_type_error: 'unknown_promotion_action_type'
 
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
-
-            @resource = klass.new(attrs.merge(promotion: @parent))
-            apply_preferences(@resource, preferences) if preferences.present?
-            authorize_resource!(@resource, :create)
-
-            if @resource.save
-              render json: serialize_resource(@resource), status: :created
-            else
-              render_validation_error(@resource.errors)
-            end
-          end
-
-          def update
-            @resource = find_resource
-            authorize_resource!(@resource, :update)
-
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
-
-            @resource.assign_attributes(attrs)
-            apply_preferences(@resource, preferences) if preferences.present?
-
-            if @resource.save
-              render json: serialize_resource(@resource)
-            else
-              render_validation_error(@resource.errors)
-            end
-          end
-
-          # Lists the registered Spree::PromotionAction subclasses with
-          # their preference schemas. The frontend uses this to populate
-          # the "Add action" picker and render generic preferences forms.
           def types
             authorize! :read, model_class
 
@@ -79,27 +46,8 @@ module Spree
 
           private
 
-          def resolve_subclass(type_name)
-            return nil if type_name.blank?
-
-            Spree.promotions.actions.find { |klass| klass.to_s == type_name }
-          end
-
-          def render_unknown_type
-            render_error(
-              code: 'unknown_promotion_action_type',
-              message: Spree.t(:invalid_promotion_action_type, scope: :api,
-                                                              default: 'Unknown promotion action type'),
-              status: :unprocessable_content
-            )
-          end
-
-          def apply_preferences(resource, preferences)
-            preferences.each do |key, value|
-              next unless resource.has_preference?(key.to_sym)
-
-              resource.set_preference(key.to_sym, value)
-            end
+          def build_subclassed_resource(klass, attrs)
+            klass.new(attrs.merge(promotion: @parent))
           end
         end
       end

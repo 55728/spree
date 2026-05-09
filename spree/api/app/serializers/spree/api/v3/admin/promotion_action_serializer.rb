@@ -13,7 +13,7 @@ module Spree
                    promotion_id: :string,
                    preferences: 'Record<string, unknown>',
                    preference_schema: "Array<{ key: string; type: string; default: unknown }>",
-                   label: [:string, nullable: true]
+                   label: :string
 
           attributes :type,
                      created_at: :iso8601, updated_at: :iso8601

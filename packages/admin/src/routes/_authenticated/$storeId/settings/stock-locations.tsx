@@ -19,6 +19,7 @@ import {
   useCountryStates,
 } from '@/components/spree/country-state-fields'
 import { ResourceTable, resourceSearchSchema } from '@/components/spree/resource-table'
+import { useRowClickBridge } from '@/components/spree/row-click-bridge'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -100,6 +101,8 @@ function StockLocationsPage() {
     navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, edit: id }) as never })
   }
 
+  useRowClickBridge('data-stock-location-id', openEdit)
+
   return (
     <>
       <ResourceTable<StockLocation>
@@ -117,38 +120,12 @@ function StockLocationsPage() {
         }
       />
 
-      {/* Row "click to edit" — surfaced as a delegated handler on the table
-          container so we don't need ResourceTable to understand row callbacks.
-          Each row renders the resource id as a data attribute via the Name
-          column below. */}
-      <RowClickBridge onEdit={openEdit} />
-
       {isCreating && <CreateStockLocationSheet open onOpenChange={(o) => !o && closeSheet()} />}
       {editId && (
         <EditStockLocationSheet id={editId} open onOpenChange={(o) => !o && closeSheet()} />
       )}
     </>
   )
-}
-
-// ResourceTable doesn't expose a per-row click handler, so we delegate clicks
-// from cells that mark themselves with `data-stock-location-id`. Keeps the
-// table generic — only this page knows what a click means.
-function RowClickBridge({ onEdit }: { onEdit: (id: string) => void }) {
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      const target = e.target as HTMLElement | null
-      const cell = target?.closest('[data-stock-location-id]') as HTMLElement | null
-      if (!cell) return
-      const id = cell.dataset.stockLocationId
-      if (!id) return
-      e.preventDefault()
-      onEdit(id)
-    }
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [onEdit])
-  return null
 }
 
 // ============================================================================

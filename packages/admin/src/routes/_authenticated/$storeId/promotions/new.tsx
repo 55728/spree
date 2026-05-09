@@ -57,6 +57,37 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>
 
+// Server expects a coherent set: automatic clears all coupon fields,
+// single-code sets `code`, multi-code sets `number_of_codes` + optional
+// prefix. Centralized so the create body stays flat.
+function couponFieldsForKind(values: FormValues) {
+  if (values.kind !== 'coupon_code') {
+    return {
+      kind: 'automatic' as const,
+      code: null,
+      multi_codes: false,
+      number_of_codes: null,
+      code_prefix: null,
+    }
+  }
+  if (values.multi_codes) {
+    return {
+      kind: 'coupon_code' as const,
+      code: null,
+      multi_codes: true,
+      number_of_codes: values.number_of_codes ?? null,
+      code_prefix: values.code_prefix || null,
+    }
+  }
+  return {
+    kind: 'coupon_code' as const,
+    code: values.code || null,
+    multi_codes: false,
+    number_of_codes: null,
+    code_prefix: null,
+  }
+}
+
 const DEFAULTS: FormValues = {
   name: '',
   description: '',
@@ -90,18 +121,12 @@ function NewPromotionPage() {
     const promotion = await createMutation.mutateAsync({
       name: values.name,
       description: values.description?.length ? values.description : null,
-      kind: values.kind,
-      code: values.kind === 'coupon_code' && !values.multi_codes ? values.code || null : null,
-      multi_codes: values.kind === 'coupon_code' ? values.multi_codes : false,
-      number_of_codes:
-        values.kind === 'coupon_code' && values.multi_codes ? values.number_of_codes : null,
-      code_prefix:
-        values.kind === 'coupon_code' && values.multi_codes ? values.code_prefix || null : null,
       starts_at: values.starts_at || null,
       expires_at: values.expires_at || null,
       usage_limit: values.usage_limit ?? null,
       match_policy: values.match_policy,
       advertise: values.advertise,
+      ...couponFieldsForKind(values),
     })
     navigate({
       to: '/$storeId/promotions/$promotionId',

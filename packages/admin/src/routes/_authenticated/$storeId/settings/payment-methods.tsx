@@ -7,7 +7,7 @@ import type {
 } from '@spree/admin-sdk'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod/v4'
 import { adminClient } from '@/client'
@@ -268,29 +268,41 @@ function EditPaymentMethodSheet({
     defaultValues: BASE_DEFAULTS,
   })
   const [preferences, setPreferences] = useState<Record<string, unknown>>({})
-  const [preferencesDirty, setPreferencesDirty] = useState(false)
+  // Snapshot of the preferences last loaded from the server. Derive the
+  // dirty state by comparing JSON shape — avoids a separate flag that
+  // can drift out of sync with the actual values.
+  const originalPreferencesRef = useRef<string>('{}')
+  // Track the loaded record so we don't clobber in-flight edits when the
+  // cache invalidates after a save.
+  const loadedIdRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (paymentMethod) {
-      form.reset({
-        name: paymentMethod.name,
-        description: paymentMethod.description ?? '',
-        display_on: (paymentMethod.display_on as PaymentMethodDisplayOn) ?? 'both',
-        active: paymentMethod.active,
-        auto_capture: paymentMethod.auto_capture ?? false,
-        position: paymentMethod.position ?? undefined,
-      })
-      setPreferences((paymentMethod.preferences as Record<string, unknown>) ?? {})
-      setPreferencesDirty(false)
-    }
+    if (!paymentMethod || paymentMethod.id === loadedIdRef.current) return
+    form.reset({
+      name: paymentMethod.name,
+      description: paymentMethod.description ?? '',
+      display_on: (paymentMethod.display_on as PaymentMethodDisplayOn) ?? 'both',
+      active: paymentMethod.active,
+      auto_capture: paymentMethod.auto_capture ?? false,
+      position: paymentMethod.position ?? undefined,
+    })
+    const initialPreferences = (paymentMethod.preferences as Record<string, unknown>) ?? {}
+    setPreferences(initialPreferences)
+    originalPreferencesRef.current = JSON.stringify(initialPreferences)
+    loadedIdRef.current = paymentMethod.id
   }, [paymentMethod, form])
+
+  const preferencesDirty = useMemo(
+    () => JSON.stringify(preferences) !== originalPreferencesRef.current,
+    [preferences],
+  )
 
   async function onSubmit(values: BaseFormValues) {
     const params = valuesToUpdateParams(values)
     if (preferencesDirty) params.preferences = preferences
     await updateMutation.mutateAsync(params)
     form.reset(values)
-    setPreferencesDirty(false)
+    originalPreferencesRef.current = JSON.stringify(preferences)
     onOpenChange(false)
   }
 
@@ -331,10 +343,7 @@ function EditPaymentMethodSheet({
                   <PreferencesForm
                     schema={paymentMethod.preference_schema}
                     values={preferences}
-                    onChange={(next) => {
-                      setPreferences(next)
-                      setPreferencesDirty(true)
-                    }}
+                    onChange={setPreferences}
                     redactPasswords
                   />
                 </div>

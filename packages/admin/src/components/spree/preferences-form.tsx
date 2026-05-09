@@ -36,6 +36,7 @@ export function PreferencesForm({
   if (!schema?.length) return null
 
   function setValue(key: string, value: unknown) {
+    if (Object.is(values[key], value)) return
     onChange({ ...values, [key]: value })
   }
 

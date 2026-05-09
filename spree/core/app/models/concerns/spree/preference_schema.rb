@@ -15,7 +15,16 @@ module Spree
       # The shape is intentionally narrow: the frontend only needs the type
       # (`string`, `text`, `integer`, `decimal`, `boolean`, `array`, etc.) and
       # the default to render a sensible field. Validation lives server-side.
+      #
+      # Memoized at class load — the schema is derived from the static
+      # `preference :name, :type` declarations, so it can never change at
+      # runtime. This keeps index responses cheap (the serializer embeds
+      # `preference_schema` on every row).
       def preference_schema
+        @preference_schema ||= compute_preference_schema
+      end
+
+      def compute_preference_schema
         instance = new
         instance.defined_preferences.filter_map do |pref|
           next if instance.preference_deprecated(pref)
