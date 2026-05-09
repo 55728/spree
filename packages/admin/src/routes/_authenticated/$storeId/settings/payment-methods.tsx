@@ -7,12 +7,13 @@ import type {
 } from '@spree/admin-sdk'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod/v4'
 import { adminClient } from '@/client'
 import { Can } from '@/components/spree/can'
 import { useConfirm } from '@/components/spree/confirm-dialog'
+import { PreferencesForm } from '@/components/spree/preferences-form'
 import { ResourceTable, resourceSearchSchema } from '@/components/spree/resource-table'
 import { useRowClickBridge } from '@/components/spree/row-click-bridge'
 import { Button } from '@/components/ui/button'
@@ -266,6 +267,8 @@ function EditPaymentMethodSheet({
     resolver: zodResolver(baseFormSchema) as any,
     defaultValues: BASE_DEFAULTS,
   })
+  const [preferences, setPreferences] = useState<Record<string, unknown>>({})
+  const [preferencesDirty, setPreferencesDirty] = useState(false)
 
   useEffect(() => {
     if (paymentMethod) {
@@ -277,12 +280,17 @@ function EditPaymentMethodSheet({
         auto_capture: paymentMethod.auto_capture ?? false,
         position: paymentMethod.position ?? undefined,
       })
+      setPreferences((paymentMethod.preferences as Record<string, unknown>) ?? {})
+      setPreferencesDirty(false)
     }
   }, [paymentMethod, form])
 
   async function onSubmit(values: BaseFormValues) {
-    await updateMutation.mutateAsync(valuesToUpdateParams(values))
+    const params = valuesToUpdateParams(values)
+    if (preferencesDirty) params.preferences = preferences
+    await updateMutation.mutateAsync(params)
     form.reset(values)
+    setPreferencesDirty(false)
     onOpenChange(false)
   }
 
@@ -316,6 +324,21 @@ function EditPaymentMethodSheet({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
               <PaymentMethodFormFields form={form} />
+
+              {paymentMethod?.preference_schema?.length ? (
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <h3 className="mb-2 text-sm font-medium">Provider configuration</h3>
+                  <PreferencesForm
+                    schema={paymentMethod.preference_schema}
+                    values={preferences}
+                    onChange={(next) => {
+                      setPreferences(next)
+                      setPreferencesDirty(true)
+                    }}
+                    redactPasswords
+                  />
+                </div>
+              ) : null}
             </div>
             <SheetFooter>
               <Can I="destroy" a={Subject.PaymentMethod}>
@@ -342,7 +365,9 @@ function EditPaymentMethodSheet({
               <Button
                 type="submit"
                 size="sm"
-                disabled={form.formState.isSubmitting || !form.formState.isDirty}
+                disabled={
+                  form.formState.isSubmitting || (!form.formState.isDirty && !preferencesDirty)
+                }
               >
                 {form.formState.isSubmitting ? 'Saving…' : 'Save'}
               </Button>
