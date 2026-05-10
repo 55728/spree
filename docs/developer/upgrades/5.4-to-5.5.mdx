@@ -21,6 +21,31 @@ description: This guide covers upgrading a Spree 5.4 application to Spree 5.5.
   bin/rake spree:install:migrations && bin/rails db:migrate
   ```
 
+### Run the channels upgrade
+
+Spree 5.5 promotes `Order#channel` from a free-text string column to a real `Spree::Channel` FK. **Run this rake task immediately after `db:migrate`** — it seeds the channel rows your existing stores need and backfills `spree_orders.channel_id` from the legacy string column:
+
+```bash
+bin/rake spree:channels:upgrade
+```
+
+The task is idempotent — safe to re-run if it fails partway, and a no-op on stores/orders that have already been upgraded. It runs two sub-tasks in order:
+
+1. **`spree:channels:create_defaults`** — creates a default `online` channel for every store that doesn't already have one. New 5.5+ stores get this automatically via the `Store` after_create callback; this sub-task only matters for stores that already exist when you upgrade. The channel's after_create hook seeds the three default routing rules (Preferred Location → Minimize Splits → Default Location).
+
+2. **`spree:channels:backfill_order_channel_ids`** — scans each store's orders, creates one `Spree::Channel` per distinct legacy `channel` value (claiming `NULL`/blank rows under the `online` default channel), and writes `channel_id`.
+
+You can also run the two steps individually if you'd rather pace the upgrade:
+
+```bash
+bin/rake spree:channels:create_defaults
+bin/rake spree:channels:backfill_order_channel_ids
+```
+
+Orders modified after the upgrade auto-set `channel_id` via the model's `before_validation` callback, so the backfill is only strictly required for orders that aren't touched again post-upgrade — but running it once at upgrade time avoids surprises later.
+
+The legacy `channel` string column is **kept** on `spree_orders` and ignored by ActiveRecord (`Spree::Order` declares it in `ignored_columns`). It will be dropped in a later Spree release once enough time has passed for everyone to have run the backfill — until then it's harmless DB ballast that lets the rake task be re-run if you need to.
+
 ### Schedule the Stock Reservations expiry job
 
 Spree 5.5 introduces time-limited stock reservations during checkout to prevent two customers from buying the same last unit at the same time. Abandoned checkouts leave behind expired reservation rows, and Spree does **not** auto-schedule the cleanup — your application's job runner must run `Spree::StockReservations::ExpireJob` periodically (every minute is the recommended cadence).
@@ -88,6 +113,22 @@ Spree::Config[:stock_reservations_enabled] = false
 
 The Quantifier short-circuits before any reservation query when this is `false`, so there's no runtime cost and no table growth.
 
+### (Optional) Opt out of rules-based Order Routing
+
+Spree 5.5 introduces [Order Routing](/developer/core-concepts/shipments#order-routing) — a configurable, per-channel pipeline that decides which stock locations fulfill an order. Every store and every channel ships with three default rules (Preferred Location → Minimize Splits → Default Location) that produce sensible behavior out of the box, with no migration work required.
+
+If you've heavily customized fulfillment in Spree 5.4 and aren't ready to adopt the new rules engine, you can keep the legacy pre-5.5 routing by switching the store's strategy to `Spree::OrderRouting::Strategy::Legacy`:
+
+```ruby
+store.update!(preferred_order_routing_strategy: 'Spree::OrderRouting::Strategy::Legacy')
+```
+
+The Legacy strategy delegates to `Spree::Stock::Coordinator`, which is the exact pre-5.5 packing pipeline — every active stock location is packed, the Prioritizer distributes inventory units across the resulting packages, and no merchant routing rules are consulted. Your existing customizations on `Coordinator`, `Packer`, `Prioritizer`, and the splitters keep working unchanged.
+
+<Warning>
+`Spree::OrderRouting::Strategy::Legacy` and `Spree::Stock::Coordinator` are slated for removal in Spree 6.0. Use this only as a temporary escape hatch while you evaluate the new Rules strategy. New 5.5+ installations should stay on the default Rules strategy.
+</Warning>
+
 ## Behavior changes worth knowing
 
 ### Cart changes during checkout can now fail with insufficient stock
@@ -99,3 +140,11 @@ Storefronts and custom integrations that act on the cart should expect this new 
 ### Storefront availability drops faster under contention
 
 Other customers now see availability reduced by all active reservations, not just by completed orders. This is the intended fix to overselling — but if you have a real-time inventory dashboard that reads `count_on_hand` directly (rather than going through Spree's availability checks), you'll want to expose a "Reserved" axis to merchants so they can see in-checkout demand.
+
+### Order Routing chooses location order via merchant rules instead of database order
+
+The default routing strategy (`Spree::OrderRouting::Strategy::Rules`) packs the same set of stock locations as before, but the **order** in which locations are tried is now determined by the routing rules — Preferred Location → Minimize Splits → Default Location — rather than by raw database row order. The unit distribution (Prioritizer + Adjuster) is unchanged: top-ranked location's packages get first pick of on-hand inventory, the rest spills over.
+
+For most stores this is invisible: when one location can fulfill the entire cart, that location now wins consistently (instead of depending on database iteration order). When the cart needs to split across locations, the same multi-location split happens — just with the location order driven by rules.
+
+If you rely on the legacy "every location packed in iteration order, no rule consulted" behavior, see [Opt out of rules-based Order Routing](#optional-opt-out-of-rules-based-order-routing) above.

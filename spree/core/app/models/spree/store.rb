@@ -55,6 +55,9 @@ module Spree
     preference :digital_asset_authorized_clicks, :integer, default: 5
     preference :digital_asset_authorized_days, :integer, default: 7
     preference :digital_asset_link_expire_time, :integer, default: 300
+    # Class name of the Spree::OrderRouting::Strategy::Base subclass that
+    # decides which StockLocation fulfills which items.
+    preference :order_routing_strategy, :string, default: 'Spree::OrderRouting::Strategy::Rules'
 
     #
     # Associations
@@ -109,6 +112,9 @@ module Spree
     has_many :webhook_endpoints, class_name: 'Spree::WebhookEndpoint', dependent: :destroy, inverse_of: :store
     has_many :webhook_deliveries, through: :webhook_endpoints, class_name: 'Spree::WebhookDelivery'
 
+    has_many :channels, class_name: 'Spree::Channel', dependent: :destroy
+    has_many :order_routing_rules, through: :channels, class_name: 'Spree::OrderRoutingRule'
+
     has_many :customer_groups, class_name: 'Spree::CustomerGroup', dependent: :destroy, inverse_of: :store
 
     has_many :api_keys, class_name: 'Spree::ApiKey', dependent: :destroy
@@ -145,6 +151,7 @@ module Spree
     before_save :ensure_default_exists_and_is_unique
     after_create :ensure_default_market
     after_create :create_default_policies
+    after_create :seed_default_channel
 
     #
     # Scopes
@@ -175,6 +182,10 @@ module Spree
 
     def self.available_locales
       Spree::Store.default&.supported_locales_list || []
+    end
+
+    def default_channel
+      channels.find_by(code: Spree::Channel::DEFAULT_CODE) || channels.active.first
     end
 
     # @deprecated Use Markets instead. Will be removed in Spree 5.5.
@@ -401,6 +412,12 @@ module Spree
           policies.create(name: policy_name)
         end
       end
+    end
+
+    def seed_default_channel
+      return if channels.any?
+
+      channels.create!(name: 'Online Store', code: Spree::Channel::DEFAULT_CODE)
     end
 
     def ensure_default_taxonomies_are_created

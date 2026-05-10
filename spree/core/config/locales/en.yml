@@ -1130,6 +1130,7 @@ en:
       messages:
         blank: can't be blank
         cannot_remove_icon: Cannot remove image
+        channel_store_mismatch: must belong to the same store
         could_not_create_taxon: Could not create taxon
         must_be_origin_only: must be an origin (scheme and host) without path, query, or fragment
         no_shipping_methods_available: No shipping methods available for selected location, please change your address and try again.
