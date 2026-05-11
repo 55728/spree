@@ -14,7 +14,11 @@ module Spree
           def search_filters
             q = params[:q]&.to_unsafe_h || params[:q] || {}
             q = q.to_h if q.respond_to?(:to_h) && !q.is_a?(Hash)
-            q.except('search').presence
+            # Decode Stripe-style prefixed IDs in `*_id_in`/`id_eq`/etc. so
+            # SPA + storefront filters can pass `prod_…` keys; the search
+            # provider hands the filter hash straight to Ransack on the
+            # underlying scope, which expects raw integer IDs.
+            decode_prefixed_id_predicates(q.except('search')).presence
           end
 
           def search_provider

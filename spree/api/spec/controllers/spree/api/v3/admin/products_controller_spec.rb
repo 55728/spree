@@ -47,6 +47,41 @@ RSpec.describe Spree::Api::V3::Admin::ProductsController, type: :controller do
       end
     end
 
+    # Regression for SPA pickers (`<ResourceMultiAutocomplete>` hydration):
+    # the products controller bypasses `ransack_params` for its custom
+    # search-provider flow, so prefixed-ID decoding has to live inside
+    # `#collection`. Without it `q[id_in][]=prod_…` returns zero rows.
+    context 'with q[id_in] using prefixed IDs' do
+      let!(:other_product) { create(:product, stores: [store]) }
+      let!(:third_product) { create(:product, stores: [store]) }
+
+      it 'decodes prefixed IDs and returns matching rows' do
+        get :index,
+            params: { q: { id_in: [product.prefixed_id, third_product.prefixed_id] } },
+            as: :json
+
+        expect(response).to have_http_status(:ok)
+        ids = json_response['data'].map { |p| p['id'] }
+        expect(ids).to contain_exactly(product.prefixed_id, third_product.prefixed_id)
+      end
+
+      it 'still accepts raw integer IDs' do
+        get :index, params: { q: { id_in: [product.id] } }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        ids = json_response['data'].map { |p| p['id'] }
+        expect(ids).to eq([product.prefixed_id])
+      end
+
+      it 'decodes with q[id_eq] too' do
+        get :index, params: { q: { id_eq: other_product.prefixed_id } }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        ids = json_response['data'].map { |p| p['id'] }
+        expect(ids).to eq([other_product.prefixed_id])
+      end
+    end
+
     context 'with q[search] (full-text search)' do
       let!(:matching_product) { create(:product, name: 'Espresso Machine', stores: [store]) }
       let!(:non_matching_product) { create(:product, name: 'Garden Hose', stores: [store]) }

@@ -113,6 +113,37 @@ RSpec.describe Spree::Api::V3::Store::ProductsController, type: :controller do
         expect(json_response['data'].first['id']).to eq(product.prefixed_id)
       end
 
+      # Regression for SPA pickers (`<ResourceMultiAutocomplete>` hydration):
+      # the store products controller routes filters through
+      # `SearchProviderSupport#search_filters`, which bypasses the base
+      # `ransack_params` decoder. Without explicit decoding there, hydration
+      # calls like `q[id_in][]=prod_…` return zero rows.
+      context 'with q[id_in] using prefixed IDs' do
+        it 'decodes prefixed IDs and returns matching rows' do
+          get :index, params: { q: { id_in: [product.prefixed_id, product2.prefixed_id] } }
+
+          expect(response).to have_http_status(:ok)
+          ids = json_response['data'].map { |p| p['id'] }
+          expect(ids).to contain_exactly(product.prefixed_id, product2.prefixed_id)
+        end
+
+        it 'still accepts raw integer IDs' do
+          get :index, params: { q: { id_in: [product.id] } }
+
+          expect(response).to have_http_status(:ok)
+          ids = json_response['data'].map { |p| p['id'] }
+          expect(ids).to eq([product.prefixed_id])
+        end
+
+        it 'decodes with q[id_eq] too' do
+          get :index, params: { q: { id_eq: product2.prefixed_id } }
+
+          expect(response).to have_http_status(:ok)
+          ids = json_response['data'].map { |p| p['id'] }
+          expect(ids).to eq([product2.prefixed_id])
+        end
+      end
+
       context 'filtering by option values' do
         let(:option_type) { create(:option_type, :color) }
         let(:option_value_red) { create(:option_value, option_type: option_type, name: 'red', presentation: 'Red') }

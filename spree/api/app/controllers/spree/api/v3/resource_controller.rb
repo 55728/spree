@@ -185,7 +185,11 @@ module Spree
           end
         end
 
-        RANSACK_ID_PREDICATE_RE = /_id(?:s)?(?:_(?:eq|not_eq|in|not_in|lt|lteq|gt|gteq))?\z/.freeze
+        # Matches both prefixed-FK predicates (`product_id_in`, `tax_category_id_eq`)
+        # and the bare-`id` predicates (`id_in`, `id_eq`) on the resource's
+        # primary key. Without the bare-id branch, `q[id_in][]=prod_x` would
+        # be passed to Ransack verbatim and never match any row.
+        RANSACK_ID_PREDICATE_RE = /(?:\A|_)id(?:s)?(?:_(?:eq|not_eq|in|not_in|lt|lteq|gt|gteq))?\z/.freeze
         def ransack_id_predicate?(key)
           RANSACK_ID_PREDICATE_RE.match?(key.to_s)
         end
