@@ -19,6 +19,28 @@ module Spree
             render json: { data: model_class.subclasses_with_preference_schema }
           end
 
+          # Returns the calculator subclasses registered for the given action
+          # `type` (e.g. `?type=Spree::Promotion::Actions::CreateAdjustment`).
+          # Each entry includes the calculator's class name, label,
+          # description, and preference schema so the SPA can render the
+          # picker + nested fields without hardcoding the calculator list.
+          def calculators
+            authorize! :read, model_class
+
+            klass = resolve_subclass(params[:type])
+            return render_unknown_type unless klass && klass.respond_to?(:calculators)
+
+            data = klass.calculators.map do |calc|
+              {
+                type: calc.to_s,
+                label: calc.respond_to?(:description) ? calc.description : calc.to_s.demodulize.titleize,
+                preference_schema: calc.respond_to?(:preference_schema) ? calc.preference_schema : []
+              }
+            end.sort_by { |entry| entry[:label].to_s }
+
+            render json: { data: data }
+          end
+
           protected
 
           def model_class
@@ -34,7 +56,7 @@ module Spree
           end
 
           def set_parent
-            return if action_name == 'types'
+            return if %w[types calculators].include?(action_name)
 
             @parent = Spree::Promotion.accessible_by(current_ability, :show)
                                       .find_by_prefix_id!(params[:promotion_id])

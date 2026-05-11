@@ -590,7 +590,6 @@ export interface PromotionCreateParams {
   code?: string | null
   usage_limit?: number | null
   match_policy?: 'all' | 'any'
-  advertise?: boolean
   path?: string | null
   promotion_category_id?: string | null
   /** `coupon_code` requires a code (or multi_codes); `automatic` triggers without one. */
@@ -601,6 +600,10 @@ export interface PromotionCreateParams {
   code_prefix?: string | null
   store_ids?: string[]
   metadata?: Record<string, unknown>
+  /** Optional rules to create alongside the promotion. Sent as a desired-set on update. */
+  rules?: PromotionRuleDraft[]
+  /** Optional actions to create alongside the promotion. */
+  actions?: PromotionActionDraft[]
 }
 
 export interface PromotionUpdateParams {
@@ -611,7 +614,6 @@ export interface PromotionUpdateParams {
   code?: string | null
   usage_limit?: number | null
   match_policy?: 'all' | 'any'
-  advertise?: boolean
   path?: string | null
   promotion_category_id?: string | null
   kind?: PromotionKind
@@ -620,24 +622,111 @@ export interface PromotionUpdateParams {
   code_prefix?: string | null
   store_ids?: string[]
   metadata?: Record<string, unknown>
+  /** Replaces the rule set: rows with `id` update, rows without build, missing rows are removed. */
+  rules?: PromotionRuleDraft[]
+  /** Same desired-set semantic as `rules`. */
+  actions?: PromotionActionDraft[]
+}
+
+/**
+ * One entry in a `Promotion#rules`/`#actions` payload. `id` is optional —
+ * supply it on updates to match an existing row, omit for new rows. The
+ * server reconciles to the desired set: anything not in the array is
+ * removed.
+ */
+export interface PromotionRuleDraft {
+  id?: string
+  /** Fully-qualified STI subclass (`'Spree::Promotion::Rules::Currency'`). */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For `Rules::Product`. */
+  product_ids?: string[]
+  /** For `Rules::Taxon` (renamed Category in 6.0). */
+  category_ids?: string[]
+  /** For `Rules::User`. */
+  user_ids?: string[]
+}
+
+export interface PromotionActionDraft {
+  id?: string
+  /** Fully-qualified STI subclass (`'Spree::Promotion::Actions::FreeShipping'`). */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For adjustment actions. */
+  calculator?: PromotionActionCalculatorParams
+  /** For `CreateLineItems`. */
+  line_items?: PromotionActionLineItemParams[]
+}
+
+/**
+ * Nested calculator payload for adjustment actions. Sent on
+ * `Spree::Promotion::Actions::CreateAdjustment` and `CreateItemAdjustments`.
+ *
+ * - `type` — fully-qualified calculator STI subclass (e.g.
+ *   `'Spree::Calculator::FlatRate'`); changing the type swaps the
+ *   underlying calculator record.
+ * - `preferences` — per-calculator preference values (`amount`,
+ *   `flat_percent`, `currency`, …). Keys are coerced via the typed
+ *   setters server-side.
+ */
+export interface PromotionActionCalculatorParams {
+  type?: string
+  preferences?: Record<string, unknown>
+}
+
+/**
+ * Nested promotion-action line item — one row in the "give the customer
+ * variant X with quantity N" payload for `CreateLineItems`. The submitted
+ * list is the *desired* set: variants not present are removed, variants
+ * present are upserted by `(promotion_action_id, variant_id)`.
+ */
+export interface PromotionActionLineItemParams {
+  variant_id: string
+  quantity: number
+}
+
+/**
+ * One entry returned by `GET /promotion_actions/calculators?type=…` — a
+ * calculator subclass available for the given action, with the preference
+ * fields the SPA renders below the calculator picker.
+ */
+export interface PromotionActionCalculator {
+  type: string
+  label: string
+  preference_schema: PreferenceField[]
 }
 
 export interface PromotionActionCreateParams {
   /** Fully-qualified STI subclass (`'Spree::Promotion::Actions::FreeShipping'`). */
   type: string
   preferences?: Record<string, unknown>
+  /** For adjustment actions — calculator subclass + its preference values. */
+  calculator?: PromotionActionCalculatorParams
+  /** For `CreateLineItems` — desired set of variants + quantities. */
+  line_items?: PromotionActionLineItemParams[]
 }
 
 export interface PromotionActionUpdateParams {
   preferences?: Record<string, unknown>
+  calculator?: PromotionActionCalculatorParams
+  line_items?: PromotionActionLineItemParams[]
 }
 
 export interface PromotionRuleCreateParams {
   /** Fully-qualified STI subclass (`'Spree::Promotion::Rules::Currency'`). */
   type: string
   preferences?: Record<string, unknown>
+  /** For `Rules::Product` — prefixed product IDs to associate with this rule. */
+  product_ids?: string[]
+  /** For `Rules::Taxon` — prefixed category IDs (Taxon is renamed to Category in 6.0). */
+  category_ids?: string[]
+  /** For `Rules::User` — prefixed user IDs. */
+  user_ids?: string[]
 }
 
 export interface PromotionRuleUpdateParams {
   preferences?: Record<string, unknown>
+  product_ids?: string[]
+  category_ids?: string[]
+  user_ids?: string[]
 }

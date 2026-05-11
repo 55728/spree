@@ -8,6 +8,17 @@ module Spree
 
         after_save :handle_promotion_action_line_items
 
+        def self.additional_permitted_attributes
+          [line_items: [:variant_id, :quantity]]
+        end
+
+        # API v3 flat alias for `promotion_action_line_items_attributes`.
+        # Accepts an array of `{ variant_id:, quantity: }` rows; the list
+        # is the *desired* set, so anything missing on save is removed.
+        def line_items=(rows)
+          self.promotion_action_line_items_attributes = rows
+        end
+
         delegate :eligible?, to: :promotion
 
         # Adds a line item to the Order if the promotion is eligible
@@ -85,29 +96,36 @@ module Spree
 
         private
 
-        # Handles the creation and updating of promotion action line items
-        #
-        # This is a hacky replacement for accepts_nested_attributes_for
-        # that allows us to save the PromotionAction and PromotionActionLineItems
-        # at the same time.
+        # Handles the creation, updating, and pruning of promotion action
+        # line items. The submitted list is the *desired* set — variants
+        # not present are deleted, ones that are get upserted. Accepts
+        # both the legacy Rails admin hash shape (`{ "0" => attrs }`) and
+        # a flat array from the API. Variant IDs may be raw or prefixed.
         def handle_promotion_action_line_items
           return unless promotion_action_line_items_attributes
 
-          # remove the ones marked for destruction
-          ids_for_destruction = promotion_action_line_items_attributes.map { |key, params| params["_destroy"] == "1" ? params["id"] : nil }.compact
-          promotion_action_line_items.where(id: ids_for_destruction).delete_all if ids_for_destruction.present?
+          rows = promotion_action_line_items_attributes.is_a?(Hash) ? promotion_action_line_items_attributes.values : promotion_action_line_items_attributes
+          rows = rows.map { |row| row.respond_to?(:to_h) ? row.to_h.with_indifferent_access : row.with_indifferent_access }
 
-          # upsert the rest
-          records_for_upsert = promotion_action_line_items_attributes.map { |key, params| params["_destroy"] != "1" ? params : nil }.compact
+          rows = rows.map do |row|
+            variant_id = row['variant_id']
+            variant_id = Spree::Variant.find_by_param(variant_id)&.id if Spree::PrefixedId.prefixed_id?(variant_id)
+            row.merge('variant_id' => variant_id)
+          end
+
+          desired_variant_ids = rows.map { |row| row['variant_id'] }.compact
+          promotion_action_line_items.where.not(variant_id: desired_variant_ids).delete_all
+
+          return if rows.empty?
 
           opts = {}
           opts[:unique_by] = [:promotion_action_id, :variant_id] unless ActiveRecord::Base.connection.adapter_name == 'Mysql2'
 
           promotion_action_line_items.upsert_all(
-            records_for_upsert.map do |params|
+            rows.map do |params|
               {
-                variant_id: params["variant_id"],
-                quantity: params["quantity"],
+                variant_id: params['variant_id'],
+                quantity: params['quantity'],
                 promotion_action_id: id
               }
             end,

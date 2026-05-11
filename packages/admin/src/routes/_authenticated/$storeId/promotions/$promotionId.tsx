@@ -1,16 +1,35 @@
-import type { PromotionAction, PromotionRule, ResourceTypeDefinition } from '@spree/admin-sdk'
+import type { ResourceTypeDefinition } from '@spree/admin-sdk'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { DownloadIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { Can } from '@/components/spree/can'
+import { formatCalculatorSummary } from '@/components/spree/calculator-summary'
 import { useConfirm } from '@/components/spree/confirm-dialog'
 import { PageHeader } from '@/components/spree/page-header'
 import { PreferencesForm } from '@/components/spree/preferences-form'
+import { EditorShell } from '@/components/spree/promotion-editors/editor-shell'
+import '@/components/spree/promotion-editors/register'
+import {
+  actionDraftFromAction,
+  actionDraftFromType,
+  actionDraftToPayload,
+  actionFormSlot,
+  type PromotionActionEditorContext,
+  type PromotionActionFormDraft,
+  type PromotionRuleEditorContext,
+  type PromotionRuleFormDraft,
+  ruleDraftFromRule,
+  ruleDraftFromType,
+  ruleDraftToPayload,
+  ruleFormSlot,
+} from '@/components/spree/promotion-editors/types'
 import { ResourceLayout } from '@/components/spree/resource-layout'
+import { Slot } from '@/components/spree/slot'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -28,15 +47,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useExport } from '@/hooks/use-export'
 import {
-  useCreatePromotionAction,
-  useCreatePromotionRule,
   useDeletePromotion,
-  useDeletePromotionAction,
-  useDeletePromotionRule,
   usePromotion,
   usePromotionActions,
   usePromotionActionTypes,
@@ -44,8 +58,6 @@ import {
   usePromotionRules,
   usePromotionRuleTypes,
   useUpdatePromotion,
-  useUpdatePromotionAction,
-  useUpdatePromotionRule,
 } from '@/hooks/use-promotions'
 import { Subject } from '@/lib/permissions'
 
@@ -53,14 +65,15 @@ export const Route = createFileRoute('/_authenticated/$storeId/promotions/$promo
   component: EditPromotionPage,
 })
 
-interface BasicsFormValues {
+interface PromotionFormValues {
   name: string
   description: string
   starts_at: string
   expires_at: string
   usage_limit: number | undefined
   match_policy: 'all' | 'any'
-  advertise: boolean
+  rules: PromotionRuleFormDraft[]
+  actions: PromotionActionFormDraft[]
 }
 
 const MATCH_POLICY_OPTIONS = [
@@ -68,41 +81,52 @@ const MATCH_POLICY_OPTIONS = [
   { value: 'any', label: 'Any rule may match' },
 ] as const
 
+const DEFAULT_VALUES: PromotionFormValues = {
+  name: '',
+  description: '',
+  starts_at: '',
+  expires_at: '',
+  usage_limit: undefined,
+  match_policy: 'all',
+  rules: [],
+  actions: [],
+}
+
 function EditPromotionPage() {
   const { storeId, promotionId } = Route.useParams()
   const navigate = useNavigate()
   const { data: promotion, isLoading } = usePromotion(promotionId)
+  // Rules and actions are listed separately because the promotion serializer
+  // doesn't embed them; we re-hydrate the form once both lists arrive.
+  const { data: rulesData } = usePromotionRules(promotionId)
+  const { data: actionsData } = usePromotionActions(promotionId)
   const updateMutation = useUpdatePromotion(promotionId)
   const deleteMutation = useDeletePromotion()
   const confirm = useConfirm()
 
-  const form = useForm<BasicsFormValues>({
-    defaultValues: {
-      name: '',
-      description: '',
-      starts_at: '',
-      expires_at: '',
-      usage_limit: undefined,
-      match_policy: 'all',
-      advertise: false,
-    },
-  })
+  const form = useForm<PromotionFormValues>({ defaultValues: DEFAULT_VALUES })
 
+  const rulesArray = useFieldArray({ control: form.control, name: 'rules', keyName: '_key' })
+  const actionsArray = useFieldArray({ control: form.control, name: 'actions', keyName: '_key' })
+
+  // Seed the form once the promotion + its child collections all arrive.
+  // Re-runs after a successful submit because the queries are invalidated.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: form is stable
   useEffect(() => {
-    if (promotion) {
-      form.reset({
-        name: promotion.name,
-        description: promotion.description ?? '',
-        starts_at: promotion.starts_at ? promotion.starts_at.slice(0, 16) : '',
-        expires_at: promotion.expires_at ? promotion.expires_at.slice(0, 16) : '',
-        usage_limit: promotion.usage_limit ?? undefined,
-        match_policy: promotion.match_policy,
-        advertise: promotion.advertise,
-      })
-    }
-  }, [promotion, form])
+    if (!promotion || !rulesData || !actionsData) return
+    form.reset({
+      name: promotion.name,
+      description: promotion.description ?? '',
+      starts_at: promotion.starts_at ?? '',
+      expires_at: promotion.expires_at ?? '',
+      usage_limit: promotion.usage_limit ?? undefined,
+      match_policy: promotion.match_policy,
+      rules: rulesData.data.map(ruleDraftFromRule),
+      actions: actionsData.data.map(actionDraftFromAction),
+    })
+  }, [promotion, rulesData, actionsData])
 
-  async function onSubmit(values: BasicsFormValues) {
+  async function onSubmit(values: PromotionFormValues) {
     await updateMutation.mutateAsync({
       name: values.name,
       description: values.description?.length ? values.description : null,
@@ -110,7 +134,8 @@ function EditPromotionPage() {
       expires_at: values.expires_at || null,
       usage_limit: values.usage_limit ?? null,
       match_policy: values.match_policy,
-      advertise: values.advertise,
+      rules: values.rules.map(ruleDraftToPayload),
+      actions: values.actions.map(actionDraftToPayload),
     })
   }
 
@@ -170,8 +195,8 @@ function EditPromotionPage() {
       main={
         <>
           <PromotionBasicsCard form={form} promotion={promotion} />
-          <PromotionRulesCard promotionId={promotionId} matchPolicy={promotion.match_policy} />
-          <PromotionActionsCard promotionId={promotionId} />
+          <PromotionRulesCard rulesArray={rulesArray} matchPolicy={form.watch('match_policy')} />
+          <PromotionActionsCard actionsArray={actionsArray} />
           {promotion.multi_codes && <PromotionCouponCodesCard promotionId={promotionId} />}
         </>
       }
@@ -231,12 +256,34 @@ function PromotionBasicsCard({ form, promotion }: PromotionBasicsCardProps) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor="starts_at">Starts</FieldLabel>
-              <Input id="starts_at" type="datetime-local" {...form.register('starts_at')} />
+              <FieldLabel>Starts</FieldLabel>
+              <Controller
+                name="starts_at"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value || null}
+                    onChange={(v) => field.onChange(v ?? '')}
+                    placeholder="No start date"
+                    includeTime
+                  />
+                )}
+              />
             </Field>
             <Field>
-              <FieldLabel htmlFor="expires_at">Expires</FieldLabel>
-              <Input id="expires_at" type="datetime-local" {...form.register('expires_at')} />
+              <FieldLabel>Expires</FieldLabel>
+              <Controller
+                name="expires_at"
+                control={form.control}
+                render={({ field }) => (
+                  <DatePicker
+                    value={field.value || null}
+                    onChange={(v) => field.onChange(v ?? '')}
+                    placeholder="No expiry"
+                    includeTime
+                  />
+                )}
+              />
             </Field>
           </div>
 
@@ -277,22 +324,6 @@ function PromotionBasicsCard({ form, promotion }: PromotionBasicsCardProps) {
             />
           </Field>
 
-          <Field>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col">
-                <FieldLabel htmlFor="advertise" className="cursor-pointer">
-                  Advertise on storefront
-                </FieldLabel>
-              </div>
-              <Controller
-                name="advertise"
-                control={form.control}
-                render={({ field }) => (
-                  <Switch id="advertise" checked={!!field.value} onCheckedChange={field.onChange} />
-                )}
-              />
-            </div>
-          </Field>
         </FieldGroup>
       </CardContent>
     </Card>
@@ -303,21 +334,21 @@ function PromotionBasicsCard({ form, promotion }: PromotionBasicsCardProps) {
 // Rules
 // ============================================================================
 
+type RulesArray = ReturnType<typeof useFieldArray<PromotionFormValues, 'rules', '_key'>>
+type ActionsArray = ReturnType<typeof useFieldArray<PromotionFormValues, 'actions', '_key'>>
+
 function PromotionRulesCard({
-  promotionId,
+  rulesArray,
   matchPolicy,
 }: {
-  promotionId: string
+  rulesArray: RulesArray
   matchPolicy: 'all' | 'any'
 }) {
-  const { data: rulesData } = usePromotionRules(promotionId)
   const { data: typesData } = usePromotionRuleTypes()
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
-  const rules = rulesData?.data ?? []
   const types = typesData?.data ?? []
-  const editing = rules.find((r) => r.id === editingId)
 
   return (
     <Card>
@@ -330,18 +361,18 @@ function PromotionRulesCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {rules.length === 0 ? (
+          {rulesArray.fields.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No rules. Without rules, the promotion always qualifies (subject to schedule and usage
               limit).
             </p>
           ) : (
-            rules.map((rule) => (
+            rulesArray.fields.map((field, index) => (
               <RuleRow
-                key={rule.id}
-                rule={rule}
-                promotionId={promotionId}
-                onEdit={() => setEditingId(rule.id)}
+                key={field._key}
+                draft={field as unknown as PromotionRuleFormDraft}
+                onEdit={() => setEditingIndex(index)}
+                onRemove={() => rulesArray.remove(index)}
               />
             ))
           )}
@@ -355,23 +386,24 @@ function PromotionRulesCard({
 
         {pickerOpen && (
           <RulePickerSheet
-            promotionId={promotionId}
             types={types}
             open
             onOpenChange={(o) => !o && setPickerOpen(false)}
-            onCreated={(id) => {
+            onPicked={(type) => {
+              const draft = ruleDraftFromType(type)
+              rulesArray.append(draft)
               setPickerOpen(false)
-              setEditingId(id)
+              setEditingIndex(rulesArray.fields.length) // newly-appended row index
             }}
           />
         )}
 
-        {editing && (
+        {editingIndex !== null && rulesArray.fields[editingIndex] && (
           <RuleEditSheet
-            promotionId={promotionId}
-            rule={editing}
+            draft={rulesArray.fields[editingIndex] as unknown as PromotionRuleFormDraft}
             open
-            onOpenChange={(o) => !o && setEditingId(null)}
+            onOpenChange={(o) => !o && setEditingIndex(null)}
+            onSave={(next) => rulesArray.update(editingIndex, next)}
           />
         )}
       </CardContent>
@@ -380,27 +412,26 @@ function PromotionRulesCard({
 }
 
 function RuleRow({
-  rule,
-  promotionId,
+  draft,
   onEdit,
+  onRemove,
 }: {
-  rule: PromotionRule
-  promotionId: string
+  draft: PromotionRuleFormDraft
   onEdit: () => void
+  onRemove: () => void
 }) {
-  const deleteMutation = useDeletePromotionRule(promotionId)
   const confirm = useConfirm()
 
-  async function onDelete(e: React.MouseEvent) {
+  async function handleRemove(e: React.MouseEvent) {
     e.stopPropagation()
     const ok = await confirm({
       title: 'Remove rule?',
-      message: 'This rule will be removed from the promotion.',
+      message: 'Removed when you save the promotion.',
       variant: 'destructive',
       confirmLabel: 'Remove',
     })
     if (!ok) return
-    deleteMutation.mutate(rule.id)
+    onRemove()
   }
 
   return (
@@ -410,22 +441,15 @@ function RuleRow({
       className="flex w-full items-center justify-between rounded-md border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium">{rule.label}</div>
-        {Object.keys(rule.preferences ?? {}).length > 0 && (
-          <div className="truncate text-xs text-muted-foreground">
-            {Object.entries(rule.preferences as Record<string, unknown>)
-              .map(([k, v]) => `${k}: ${formatPrefValue(v)}`)
-              .join(' · ')}
-          </div>
-        )}
+        <div className="text-sm font-medium">{draft.label}</div>
+        <RuleSummary draft={draft} />
       </div>
       <Can I="destroy" a={Subject.PromotionRule}>
         <Button
           type="button"
           size="icon-xs"
           variant="ghost"
-          onClick={onDelete}
-          disabled={deleteMutation.isPending}
+          onClick={handleRemove}
           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
           <TrashIcon className="size-4" />
@@ -435,49 +459,85 @@ function RuleRow({
   )
 }
 
+function RuleSummary({ draft }: { draft: PromotionRuleFormDraft }) {
+  const parts: string[] = []
+  const products = nameList(draft.products)
+  const categories = nameList(draft.categories)
+  const customers = nameList(draft.customers, customerLabel)
+  const groups = nameList(draft.customer_groups)
+  const countries = nameList(draft.countries)
+
+  if (products) parts.push(products)
+  else if (draft.product_ids?.length) parts.push(`${draft.product_ids.length} products`)
+
+  if (categories) parts.push(categories)
+  else if (draft.category_ids?.length) parts.push(`${draft.category_ids.length} categories`)
+
+  if (customers) parts.push(customers)
+  else if (draft.user_ids?.length) parts.push(`${draft.user_ids.length} customers`)
+
+  if (groups) parts.push(groups)
+  if (countries) parts.push(countries)
+
+  const policy = draft.preferences?.match_policy
+  if (policy) parts.push(String(policy))
+
+  if (parts.length === 0) return null
+  return <div className="truncate text-xs text-muted-foreground">{parts.join(' · ')}</div>
+}
+
+/**
+ * Joins up to 3 names; collapses the tail into "+N more". Returns null
+ * when the list is missing or empty so the caller can fall back to a
+ * count-based summary built from `*_ids`.
+ */
+function nameList<T>(items: T[] | undefined, getLabel: (item: T) => string = defaultLabel): string | null {
+  if (!items?.length) return null
+  const labels = items.map(getLabel).filter(Boolean)
+  if (labels.length === 0) return null
+  if (labels.length <= 3) return labels.join(', ')
+  return `${labels.slice(0, 3).join(', ')} +${labels.length - 3} more`
+}
+
+function defaultLabel(o: unknown): string {
+  if (o && typeof o === 'object' && 'name' in o && typeof (o as { name: unknown }).name === 'string') {
+    return (o as { name: string }).name
+  }
+  return ''
+}
+
+function customerLabel(c: unknown): string {
+  if (!c || typeof c !== 'object') return ''
+  const o = c as { first_name?: string; last_name?: string; email?: string }
+  const full = [o.first_name, o.last_name].filter(Boolean).join(' ').trim()
+  return full || o.email || ''
+}
+
 function RulePickerSheet({
-  promotionId,
   types,
   open,
   onOpenChange,
-  onCreated,
+  onPicked,
 }: {
-  promotionId: string
   types: ResourceTypeDefinition[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated: (id: string) => void
+  onPicked: (type: ResourceTypeDefinition) => void
 }) {
-  const [selected, setSelected] = useState<string>('')
-  const createMutation = useCreatePromotionRule(promotionId)
-
-  async function handleCreate() {
-    if (!selected) return
-    const rule = await createMutation.mutateAsync({ type: selected })
-    onCreated(rule.id)
-    setSelected('')
-  }
-
-  const selectedType = types.find((t) => t.type === selected)
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Add rule</SheetTitle>
-          <SheetDescription>
-            Pick a rule type. Configure its values after it's added.
-          </SheetDescription>
+          <SheetDescription>Pick a rule type to configure.</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
           {types.map((t) => (
             <button
               key={t.type}
               type="button"
-              onClick={() => setSelected(t.type)}
-              className={`flex flex-col items-start rounded-md border p-3 text-left transition-colors ${
-                selected === t.type ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
-              }`}
+              onClick={() => onPicked(t)}
+              className="flex flex-col items-start rounded-md border p-3 text-left transition-colors hover:bg-muted/50"
             >
               <span className="text-sm font-medium">{t.label}</span>
               {t.description && (
@@ -487,26 +547,8 @@ function RulePickerSheet({
           ))}
         </div>
         <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={createMutation.isPending}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleCreate}
-            disabled={!selected || createMutation.isPending}
-          >
-            {createMutation.isPending
-              ? 'Adding…'
-              : selectedType
-                ? `Add ${selectedType.label}`
-                : 'Add rule'}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -515,67 +557,66 @@ function RulePickerSheet({
 }
 
 function RuleEditSheet({
-  promotionId,
-  rule,
+  draft,
   open,
   onOpenChange,
+  onSave,
 }: {
-  promotionId: string
-  rule: PromotionRule
+  draft: PromotionRuleFormDraft
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSave: (next: PromotionRuleFormDraft) => void
 }) {
-  const updateMutation = useUpdatePromotionRule(promotionId, rule.id)
-  const [values, setValues] = useState<Record<string, unknown>>(rule.preferences ?? {})
-
-  useEffect(() => {
-    setValues(rule.preferences ?? {})
-  }, [rule])
-
-  async function handleSave() {
-    await updateMutation.mutateAsync({ preferences: values })
-    onOpenChange(false)
-  }
+  const onClose = () => onOpenChange(false)
+  const ctx: PromotionRuleEditorContext = { draft, onSave, onClose }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{rule.label}</SheetTitle>
+          <SheetTitle>{draft.label}</SheetTitle>
           <SheetDescription>Tune the rule's parameters.</SheetDescription>
         </SheetHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-          {rule.preference_schema?.length ? (
-            <PreferencesForm schema={rule.preference_schema} values={values} onChange={setValues} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This rule has no configurable options — its presence alone applies the constraint.
-            </p>
-          )}
-        </div>
-        <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={updateMutation.isPending}
-          >
-            Cancel
-          </Button>
-          {rule.preference_schema?.length ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSave}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? 'Saving…' : 'Save'}
-            </Button>
-          ) : null}
-        </SheetFooter>
+        <Slot
+          name={ruleFormSlot(draft.key)}
+          context={ctx}
+          fallback={<DefaultRuleEditor {...ctx} />}
+        />
       </SheetContent>
     </Sheet>
+  )
+}
+
+/**
+ * Default rule editor — renders a generic PreferencesForm for rules
+ * whose configuration is exhausted by their preference schema
+ * (Currency, FirstOrder, ItemTotal, etc.).
+ */
+function DefaultRuleEditor({ draft, onSave, onClose }: PromotionRuleEditorContext) {
+  const [values, setValues] = useState<Record<string, unknown>>(draft.preferences ?? {})
+
+  const hasPreferences = !!draft.preference_schema?.length
+
+  function handleSave() {
+    onSave({ ...draft, preferences: values })
+    onClose()
+  }
+
+  return (
+    <EditorShell
+      onSave={handleSave}
+      onCancel={onClose}
+      pending={false}
+      saveDisabled={!hasPreferences}
+    >
+      {hasPreferences ? (
+        <PreferencesForm schema={draft.preference_schema} values={values} onChange={setValues} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          This rule has no configurable options — its presence alone applies the constraint.
+        </p>
+      )}
+    </EditorShell>
   )
 }
 
@@ -583,15 +624,12 @@ function RuleEditSheet({
 // Actions
 // ============================================================================
 
-function PromotionActionsCard({ promotionId }: { promotionId: string }) {
-  const { data: actionsData } = usePromotionActions(promotionId)
+function PromotionActionsCard({ actionsArray }: { actionsArray: ActionsArray }) {
   const { data: typesData } = usePromotionActionTypes()
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
-  const actions = actionsData?.data ?? []
   const types = typesData?.data ?? []
-  const editing = actions.find((a) => a.id === editingId)
 
   return (
     <Card>
@@ -601,17 +639,17 @@ function PromotionActionsCard({ promotionId }: { promotionId: string }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {actions.length === 0 ? (
+          {actionsArray.fields.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No actions yet. A promotion without actions doesn't do anything when applied.
             </p>
           ) : (
-            actions.map((action) => (
+            actionsArray.fields.map((field, index) => (
               <ActionRow
-                key={action.id}
-                action={action}
-                promotionId={promotionId}
-                onEdit={() => setEditingId(action.id)}
+                key={field._key}
+                draft={field as unknown as PromotionActionFormDraft}
+                onEdit={() => setEditingIndex(index)}
+                onRemove={() => actionsArray.remove(index)}
               />
             ))
           )}
@@ -625,23 +663,24 @@ function PromotionActionsCard({ promotionId }: { promotionId: string }) {
 
         {pickerOpen && (
           <ActionPickerSheet
-            promotionId={promotionId}
             types={types}
             open
             onOpenChange={(o) => !o && setPickerOpen(false)}
-            onCreated={(id) => {
+            onPicked={(type) => {
+              const draft = actionDraftFromType(type)
+              actionsArray.append(draft)
               setPickerOpen(false)
-              setEditingId(id)
+              setEditingIndex(actionsArray.fields.length)
             }}
           />
         )}
 
-        {editing && (
+        {editingIndex !== null && actionsArray.fields[editingIndex] && (
           <ActionEditSheet
-            promotionId={promotionId}
-            action={editing}
+            draft={actionsArray.fields[editingIndex] as unknown as PromotionActionFormDraft}
             open
-            onOpenChange={(o) => !o && setEditingId(null)}
+            onOpenChange={(o) => !o && setEditingIndex(null)}
+            onSave={(next) => actionsArray.update(editingIndex, next)}
           />
         )}
       </CardContent>
@@ -650,27 +689,26 @@ function PromotionActionsCard({ promotionId }: { promotionId: string }) {
 }
 
 function ActionRow({
-  action,
-  promotionId,
+  draft,
   onEdit,
+  onRemove,
 }: {
-  action: PromotionAction
-  promotionId: string
+  draft: PromotionActionFormDraft
   onEdit: () => void
+  onRemove: () => void
 }) {
-  const deleteMutation = useDeletePromotionAction(promotionId)
   const confirm = useConfirm()
 
-  async function onDelete(e: React.MouseEvent) {
+  async function handleRemove(e: React.MouseEvent) {
     e.stopPropagation()
     const ok = await confirm({
       title: 'Remove action?',
-      message: 'This action will be removed from the promotion.',
+      message: 'Removed when you save the promotion.',
       variant: 'destructive',
       confirmLabel: 'Remove',
     })
     if (!ok) return
-    deleteMutation.mutate(action.id)
+    onRemove()
   }
 
   return (
@@ -680,22 +718,15 @@ function ActionRow({
       className="flex w-full items-center justify-between rounded-md border bg-card px-3 py-2 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium">{action.label}</div>
-        {Object.keys(action.preferences ?? {}).length > 0 && (
-          <div className="truncate text-xs text-muted-foreground">
-            {Object.entries(action.preferences as Record<string, unknown>)
-              .map(([k, v]) => `${k}: ${formatPrefValue(v)}`)
-              .join(' · ')}
-          </div>
-        )}
+        <div className="text-sm font-medium">{draft.label}</div>
+        <ActionSummary draft={draft} />
       </div>
       <Can I="destroy" a={Subject.PromotionAction}>
         <Button
           type="button"
           size="icon-xs"
           variant="ghost"
-          onClick={onDelete}
-          disabled={deleteMutation.isPending}
+          onClick={handleRemove}
           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
           <TrashIcon className="size-4" />
@@ -705,31 +736,26 @@ function ActionRow({
   )
 }
 
+function ActionSummary({ draft }: { draft: PromotionActionFormDraft }) {
+  const parts: string[] = []
+  const calc = formatCalculatorSummary(draft.calculator)
+  if (calc) parts.push(calc)
+  if (draft.line_items?.length) parts.push(`${draft.line_items.length} variants`)
+  if (parts.length === 0) return null
+  return <div className="truncate text-xs text-muted-foreground">{parts.join(' · ')}</div>
+}
+
 function ActionPickerSheet({
-  promotionId,
   types,
   open,
   onOpenChange,
-  onCreated,
+  onPicked,
 }: {
-  promotionId: string
   types: ResourceTypeDefinition[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated: (id: string) => void
+  onPicked: (type: ResourceTypeDefinition) => void
 }) {
-  const [selected, setSelected] = useState<string>('')
-  const createMutation = useCreatePromotionAction(promotionId)
-
-  async function handleCreate() {
-    if (!selected) return
-    const action = await createMutation.mutateAsync({ type: selected })
-    onCreated(action.id)
-    setSelected('')
-  }
-
-  const selectedType = types.find((t) => t.type === selected)
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
@@ -742,10 +768,8 @@ function ActionPickerSheet({
             <button
               key={t.type}
               type="button"
-              onClick={() => setSelected(t.type)}
-              className={`flex flex-col items-start rounded-md border p-3 text-left transition-colors ${
-                selected === t.type ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
-              }`}
+              onClick={() => onPicked(t)}
+              className="flex flex-col items-start rounded-md border p-3 text-left transition-colors hover:bg-muted/50"
             >
               <span className="text-sm font-medium">{t.label}</span>
               {t.description && (
@@ -755,26 +779,8 @@ function ActionPickerSheet({
           ))}
         </div>
         <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={createMutation.isPending}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleCreate}
-            disabled={!selected || createMutation.isPending}
-          >
-            {createMutation.isPending
-              ? 'Adding…'
-              : selectedType
-                ? `Add ${selectedType.label}`
-                : 'Add action'}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -783,71 +789,63 @@ function ActionPickerSheet({
 }
 
 function ActionEditSheet({
-  promotionId,
-  action,
+  draft,
   open,
   onOpenChange,
+  onSave,
 }: {
-  promotionId: string
-  action: PromotionAction
+  draft: PromotionActionFormDraft
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSave: (next: PromotionActionFormDraft) => void
 }) {
-  const updateMutation = useUpdatePromotionAction(promotionId, action.id)
-  const [values, setValues] = useState<Record<string, unknown>>(action.preferences ?? {})
-
-  useEffect(() => {
-    setValues(action.preferences ?? {})
-  }, [action])
-
-  async function handleSave() {
-    await updateMutation.mutateAsync({ preferences: values })
-    onOpenChange(false)
-  }
+  const onClose = () => onOpenChange(false)
+  const ctx: PromotionActionEditorContext = { draft, onSave, onClose }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{action.label}</SheetTitle>
+          <SheetTitle>{draft.label}</SheetTitle>
           <SheetDescription>Configure the action's parameters.</SheetDescription>
         </SheetHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-          {action.preference_schema?.length ? (
-            <PreferencesForm
-              schema={action.preference_schema}
-              values={values}
-              onChange={setValues}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This action has no configurable options.
-            </p>
-          )}
-        </div>
-        <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={updateMutation.isPending}
-          >
-            Cancel
-          </Button>
-          {action.preference_schema?.length ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSave}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? 'Saving…' : 'Save'}
-            </Button>
-          ) : null}
-        </SheetFooter>
+        <Slot
+          name={actionFormSlot(draft.key)}
+          context={ctx}
+          fallback={<DefaultActionEditor {...ctx} />}
+        />
       </SheetContent>
     </Sheet>
+  )
+}
+
+function DefaultActionEditor({ draft, onSave, onClose }: PromotionActionEditorContext) {
+  const [values, setValues] = useState<Record<string, unknown>>(draft.preferences ?? {})
+
+  const hasPreferences = !!draft.preference_schema?.length
+
+  function handleSave() {
+    onSave({ ...draft, preferences: values })
+    onClose()
+  }
+
+  return (
+    <EditorShell
+      onSave={handleSave}
+      onCancel={onClose}
+      pending={false}
+      saveDisabled={!hasPreferences}
+    >
+      {hasPreferences ? (
+        <PreferencesForm
+          schema={draft.preference_schema}
+          values={values}
+          onChange={setValues}
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">This action has no configurable options.</p>
+      )}
+    </EditorShell>
   )
 }
 
@@ -950,11 +948,4 @@ function PromotionCouponCodesCard({ promotionId }: { promotionId: string }) {
       </CardContent>
     </Card>
   )
-}
-
-function formatPrefValue(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.length}]`
-  if (typeof value === 'boolean') return value ? 'yes' : 'no'
-  if (value === null || value === undefined || value === '') return '—'
-  return String(value)
 }

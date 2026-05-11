@@ -7,6 +7,10 @@ module Spree
 
         before_validation -> { self.calculator ||= Calculator::FlatPercentItemTotal.new }
 
+        def self.additional_permitted_attributes
+          [calculator: [:type, { preferences: {} }]]
+        end
+
         def perform(options = {})
           order = options[:order]
 

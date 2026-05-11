@@ -10,13 +10,20 @@ module Spree
         # current value hash, `preference_schema` describes its fields.
         class PromotionActionSerializer < BaseSerializer
           typelize type: :string,
+                   key: :string,
                    promotion_id: :string,
                    preferences: 'Record<string, unknown>',
                    preference_schema: "Array<{ key: string; type: string; default: unknown }>",
-                   label: :string
+                   label: :string,
+                   calculator: "{ type: string; label: string; preferences: Record<string, unknown>; preference_schema: Array<{ key: string; type: string; default: unknown }> } | null",
+                   line_items: 'Array<{ variant_id: string; quantity: number }> | null'
 
           attributes :type,
                      created_at: :iso8601, updated_at: :iso8601
+
+          attribute :key do |action|
+            action.key
+          end
 
           attribute :promotion_id do |action|
             action.promotion&.prefixed_id
@@ -32,6 +39,37 @@ module Spree
 
           attribute :label do |action|
             action.respond_to?(:human_name) ? action.human_name : action.type.to_s.demodulize
+          end
+
+          # Calculator is exposed as a nested object so the SPA can render
+          # the calculator picker + its own preference fields. Null for
+          # actions that don't include CalculatedAdjustments. The SPA
+          # formats the row summary itself off `label` + `preferences` —
+          # see the action-summary helper in the admin promotion editor.
+          attribute :calculator do |action|
+            next nil unless action.respond_to?(:calculator) && action.calculator
+
+            calc = action.calculator
+            {
+              type: calc.class.to_s,
+              label: calc.class.respond_to?(:description) ? calc.class.description : calc.class.to_s.demodulize.titleize,
+              preferences: calc.preferences.to_h,
+              preference_schema: calc.class.preference_schema
+            }
+          end
+
+          # Line items the action will add for CreateLineItems. variant_id
+          # is prefixed for consistency with the rest of the API. Null on
+          # actions that don't have the association.
+          attribute :line_items do |action|
+            next nil unless action.respond_to?(:promotion_action_line_items)
+
+            action.promotion_action_line_items.map do |item|
+              {
+                variant_id: item.variant&.prefixed_id,
+                quantity: item.quantity
+              }
+            end
           end
         end
       end

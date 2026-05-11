@@ -23,6 +23,25 @@ module Spree
         self.calculator = klass.new if klass && !calculator.instance_of?(klass)
       end
 
+      # API v3 writer for the flat `calculator: { type:, preferences: {} }`
+      # payload. Routes preferences through `set_preference` so values
+      # are coerced by the typed `preferred_<name>=` setters — direct
+      # assignment to the serialized hash would skip coercion.
+      def assign_calculator_attributes(attrs)
+        return if attrs.nil?
+
+        attrs = attrs.to_h.with_indifferent_access
+        self.calculator_type = attrs[:type] if attrs[:type].present?
+
+        return if calculator.nil? || attrs[:preferences].blank?
+
+        attrs[:preferences].to_h.each do |key, value|
+          next unless calculator.has_preference?(key.to_sym)
+
+          calculator.set_preference(key.to_sym, value)
+        end
+      end
+
       private
 
       def self.model_name_without_spree_namespace

@@ -39,7 +39,8 @@ module Spree
     has_many :orders, through: :order_promotions, class_name: 'Spree::Order'
     has_many :store_promotions, class_name: 'Spree::StorePromotion'
     has_many :stores, class_name: 'Spree::Store', through: :store_promotions
-    accepts_nested_attributes_for :promotion_actions, :promotion_rules
+
+    after_save :apply_pending_rules_and_actions, if: :pending_rules_or_actions?
 
     #
     # Callbacks
@@ -113,6 +114,25 @@ module Spree
       if ActiveModel::Type::Boolean.new.cast(generating_code)
         self.code = random_code
       end
+    end
+
+    # Flat-payload writer for `rules`. Accepts an array of hashes like
+    # `[{ type:, preferences:, product_ids:, ... }]` and reconciles to
+    # the desired set: existing rows update by `id`, new rows build,
+    # missing rows destroy. Falls through to AR's standard writer
+    # when assigned a real array of `Spree::PromotionRule` instances
+    # (Rails internals do this on association swap).
+    def rules=(rules_params)
+      assign_subclassed_collection(:promotion_rules, rules_params, registry: Spree.promotions.rules)
+    end
+
+    # Same shape as `rules=` for promotion actions.
+    def actions=(actions_params)
+      assign_subclassed_collection(:promotion_actions, actions_params, registry: Spree.promotions.actions)
+    end
+
+    def pending_rules_or_actions?
+      @pending_promotion_rules.present? || @pending_promotion_actions.present?
     end
 
     def active?
@@ -282,6 +302,89 @@ module Spree
     end
 
     private
+
+    def assign_subclassed_collection(association, params, registry:)
+      first = Array(params).first
+      return public_send(:"#{association}=", params) if first.nil? || first.is_a?(Spree.base_class)
+
+      pending = Array(params).map { |entry| entry.respond_to?(:to_h) ? entry.to_h.with_indifferent_access : entry.with_indifferent_access }
+
+      if new_record?
+        instance_variable_set(:"@pending_#{association}", { params: pending, registry: registry })
+        return
+      end
+
+      apply_subclassed_collection(association, pending, registry: registry)
+    end
+
+    def apply_pending_rules_and_actions
+      if (pending = @pending_promotion_rules)
+        apply_subclassed_collection(:promotion_rules, pending[:params], registry: pending[:registry])
+        @pending_promotion_rules = nil
+      end
+      if (pending = @pending_promotion_actions)
+        apply_subclassed_collection(:promotion_actions, pending[:params], registry: pending[:registry])
+        @pending_promotion_actions = nil
+      end
+    end
+
+    # Applied to a persisted promotion. Reconciles `association` to the
+    # supplied desired-set: rows with `id:` update, rows without build,
+    # rows missing from the payload are destroyed.
+    def apply_subclassed_collection(association, rows, registry:)
+      collection = public_send(association)
+      kept_ids = []
+
+      rows.each do |row|
+        klass = registry.find { |k| k.to_s == row[:type] } if row[:type]
+        klass ||= collection.find_by(id: decode_id(row[:id]))&.class
+
+        next unless klass
+
+        record = if row[:id].present?
+                   collection.find { |r| r.id == decode_id(row[:id]) } || collection.find_by(id: decode_id(row[:id]))
+                 else
+                   collection.build(type: klass.to_s)
+                 end
+
+        next unless record
+
+        # Promote to the right STI subclass when building new (collection.build
+        # uses the declared class_name, which is the parent).
+        record = record.becomes(klass) if record.class != klass
+        assign_subclass_attributes(record, row)
+        record.save! if record.changed? || record.new_record?
+        kept_ids << record.id
+      end
+
+      collection.where.not(id: kept_ids).destroy_all if kept_ids.any? || rows.empty?
+    end
+
+    def assign_subclass_attributes(record, row)
+      preferences = row.delete(:preferences)
+      calculator = row.delete(:calculator)
+      row.delete(:type)
+      row.delete(:id)
+
+      record.assign_attributes(row) if row.any?
+
+      if preferences.present?
+        preferences.to_h.each do |key, value|
+          next unless record.has_preference?(key.to_sym)
+
+          record.set_preference(key.to_sym, value)
+        end
+      end
+
+      record.assign_calculator_attributes(calculator) if calculator.present? && record.respond_to?(:assign_calculator_attributes)
+    end
+
+    def decode_id(value)
+      return nil if value.blank?
+      return value.to_i if value.is_a?(Integer) || value.to_s.match?(/\A\d+\z/)
+
+      Spree::PrefixedId.decode_prefixed_id(value)
+    end
 
     def not_used?
       return true if orders.empty?

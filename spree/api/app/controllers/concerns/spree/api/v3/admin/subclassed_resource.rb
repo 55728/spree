@@ -38,14 +38,15 @@ module Spree
           end
 
           def create
-            klass = resolve_subclass(permitted_params[:type])
+            klass = resolve_subclass(params[:type])
             return render_unknown_type unless klass
 
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
+            permitted = permitted_params_for(klass)
+            attrs, preferences, calculator = extract_subclass_params(permitted)
 
             @resource = build_subclassed_resource(klass, attrs)
             apply_preferences(@resource, preferences) if preferences.present?
+            apply_calculator(@resource, calculator) if calculator.present?
             authorize_resource!(@resource, :create)
 
             if @resource.save
@@ -59,11 +60,12 @@ module Spree
             @resource = find_resource
             authorize_resource!(@resource, :update)
 
-            attrs = permitted_params.except(:type, :preferences)
-            preferences = permitted_params[:preferences]
+            permitted = permitted_params_for(@resource.class)
+            attrs, preferences, calculator = extract_subclass_params(permitted)
 
             @resource.assign_attributes(attrs)
             apply_preferences(@resource, preferences) if preferences.present?
+            apply_calculator(@resource, calculator) if calculator.present?
 
             if @resource.save
               render json: serialize_resource(@resource)
@@ -73,6 +75,18 @@ module Spree
           end
 
           private
+
+          # Per-subclass permitted params. Calls `permitted_params` (the base
+          # allowlist with `type` + `preferences`) and merges in extras the
+          # subclass has declared via `additional_permitted_attributes`.
+          # Controllers can override this hook directly if their subclasses
+          # expose extras through a different mechanism.
+          def permitted_params_for(klass)
+            extras = klass.respond_to?(:additional_permitted_attributes) ? klass.additional_permitted_attributes : []
+            return permitted_params if extras.blank?
+
+            params.permit(:type, { preferences: {} }, *extras)
+          end
 
           # Default build: top-level resource. Nested controllers (actions,
           # rules) override to attach the parent.
@@ -101,6 +115,25 @@ module Spree
 
               resource.set_preference(key.to_sym, value)
             end
+          end
+
+          # Pulls `preferences` and `calculator` out of the permitted
+          # params so they can be routed through their typed setters
+          # (`set_preference`, `assign_calculator_attributes`) instead
+          # of generic `assign_attributes`. The remaining hash is
+          # safe to pass through as plain attribute assignments.
+          def extract_subclass_params(permitted)
+            permitted = permitted.respond_to?(:to_unsafe_h) ? permitted.to_unsafe_h.with_indifferent_access : permitted.with_indifferent_access
+            permitted.delete(:type) # subclass is already resolved; don't let it overwrite STI column
+            preferences = permitted.delete(:preferences)
+            calculator = permitted.delete(:calculator)
+            [permitted, preferences, calculator]
+          end
+
+          def apply_calculator(resource, calculator)
+            return unless resource.respond_to?(:assign_calculator_attributes)
+
+            resource.assign_calculator_attributes(calculator)
           end
         end
       end

@@ -201,6 +201,13 @@ Spree::Core::Engine.add_routes do
         get 'promotion_actions/types', to: 'promotion_actions#types'
         get 'promotion_rules/types',   to: 'promotion_rules#types'
 
+        # Calculator catalog for actions that include CalculatedAdjustments
+        # (CreateAdjustment, CreateItemAdjustments). Returns the registered
+        # calculator subclasses for the given action type along with each
+        # calculator's preference schema, so the SPA can render the picker
+        # + nested calculator preferences.
+        get 'promotion_actions/calculators', to: 'promotion_actions#calculators'
+
         # Tags (autocomplete for product/order/user tag inputs)
         resources :tags, only: [:index]
 
@@ -210,6 +217,9 @@ Spree::Core::Engine.add_routes do
           resources :credit_cards, controller: 'customers/credit_cards', only: [:index, :show, :destroy]
           resources :store_credits, controller: 'customers/store_credits'
         end
+
+        # Customer groups (segmentation; used by promotion rules + bulk customer ops)
+        resources :customer_groups
 
         # Variants (top-level, for search/autocomplete across all products)
         resources :variants, only: [:index, :show], concerns: :custom_fieldable

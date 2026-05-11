@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/spree/page-header'
 import { ResourceLayout } from '@/components/spree/resource-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -36,7 +37,6 @@ const formSchema = z
     expires_at: z.string().optional(),
     usage_limit: z.coerce.number().int().positive().optional(),
     match_policy: z.enum(['all', 'any']),
-    advertise: z.boolean(),
   })
   .superRefine((v, ctx) => {
     if (v.kind === 'coupon_code' && !v.multi_codes && !v.code?.trim()) {
@@ -110,7 +110,6 @@ const DEFAULTS: FormValues = {
   expires_at: '',
   usage_limit: undefined,
   match_policy: 'all',
-  advertise: false,
 }
 
 function NewPromotionPage() {
@@ -135,7 +134,6 @@ function NewPromotionPage() {
       expires_at: values.expires_at || null,
       usage_limit: values.usage_limit ?? null,
       match_policy: values.match_policy,
-      advertise: values.advertise,
       ...couponFieldsForKind(values),
     })
     navigate({
@@ -314,15 +312,33 @@ function NewPromotionPage() {
                 <FieldGroup>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field>
-                      <FieldLabel htmlFor="starts_at">Starts</FieldLabel>
-                      <Input id="starts_at" type="datetime-local" {...form.register('starts_at')} />
+                      <FieldLabel>Starts</FieldLabel>
+                      <Controller
+                        name="starts_at"
+                        control={form.control}
+                        render={({ field }) => (
+                          <DatePicker
+                            value={field.value || null}
+                            onChange={(v) => field.onChange(v ?? '')}
+                            placeholder="No start date"
+                            includeTime
+                          />
+                        )}
+                      />
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="expires_at">Expires</FieldLabel>
-                      <Input
-                        id="expires_at"
-                        type="datetime-local"
-                        {...form.register('expires_at')}
+                      <FieldLabel>Expires</FieldLabel>
+                      <Controller
+                        name="expires_at"
+                        control={form.control}
+                        render={({ field }) => (
+                          <DatePicker
+                            value={field.value || null}
+                            onChange={(v) => field.onChange(v ?? '')}
+                            placeholder="No expiry"
+                            includeTime
+                          />
+                        )}
                       />
                     </Field>
                   </div>
@@ -366,35 +382,12 @@ function NewPromotionPage() {
                     />
                   </Field>
 
-                  <Field>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex flex-col">
-                        <FieldLabel htmlFor="advertise" className="cursor-pointer">
-                          Advertise this promotion
-                        </FieldLabel>
-                        <span className="text-xs text-muted-foreground">
-                          Surface it on the storefront when applicable.
-                        </span>
-                      </div>
-                      <Controller
-                        name="advertise"
-                        control={form.control}
-                        render={({ field }) => (
-                          <Switch
-                            id="advertise"
-                            checked={!!field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        )}
-                      />
-                    </div>
-                  </Field>
                 </FieldGroup>
               </CardContent>
             </Card>
 
             <p className="text-sm text-muted-foreground">
-              You'll add actions and rules after the promotion is created.
+              Configure rules and actions after the promotion is created.
             </p>
           </>
         }

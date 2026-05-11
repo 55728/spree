@@ -10,6 +10,28 @@ module Spree
                                          dependent: :destroy
         has_many :taxons, through: :promotion_rule_taxons, class_name: 'Spree::Taxon'
 
+        def self.additional_permitted_attributes
+          [category_ids: []]
+        end
+
+        # API key is `category` (model is still `Taxon` pre-table-rename).
+        def key
+          'category'
+        end
+
+        # PrefixedId's auto-resolver in `assign_attributes` only fires
+        # when the `_ids` stem matches an association — `categories`
+        # doesn't, so decode prefixed IDs explicitly here.
+        def category_ids=(ids)
+          self.taxon_ids = Array(ids).map do |id|
+            Spree::PrefixedId.prefixed_id?(id) ? Spree::Taxon.find_by_param!(id).id : id
+          end
+        end
+
+        def category_ids
+          taxon_ids
+        end
+
         #
         # Preferences
         #

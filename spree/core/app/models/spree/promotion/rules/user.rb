@@ -10,6 +10,10 @@ module Spree
                                         dependent: :destroy
         has_many :users, through: :promotion_rule_users, class_name: "::#{Spree.user_class}"
 
+        def self.additional_permitted_attributes
+          [user_ids: []]
+        end
+
         #
         # Attributes
         #

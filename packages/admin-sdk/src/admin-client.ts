@@ -123,6 +123,7 @@ import type {
   PaymentMethodType,
   PaymentMethodUpdateParams,
   ProductUpdateParams,
+  PromotionActionCalculator,
   PromotionActionCreateParams,
   PromotionActionUpdateParams,
   PromotionCreateParams,
@@ -151,6 +152,7 @@ import type {
   Country,
   CreditCard,
   Customer,
+  CustomerGroup,
   CustomField,
   CustomFieldDefinition,
   Export,
@@ -1097,6 +1099,16 @@ export class AdminClient {
         '/promotion_actions/types',
         options,
       ),
+
+    calculators: (
+      type: string,
+      options?: RequestOptions,
+    ): Promise<{ data: PromotionActionCalculator[] }> =>
+      this.request<{ data: PromotionActionCalculator[] }>(
+        'GET',
+        '/promotion_actions/calculators',
+        { ...options, params: { type } },
+      ),
   }
 
   readonly promotionRules = {
@@ -1121,6 +1133,24 @@ export class AdminClient {
         ...options,
         params,
       }),
+  }
+
+  // ============================================
+  // Customer groups
+  // ============================================
+
+  readonly customerGroups = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<CustomerGroup>> =>
+      this.request<PaginatedResponse<CustomerGroup>>('GET', '/customer_groups', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, options?: RequestOptions): Promise<CustomerGroup> =>
+      this.request<CustomerGroup>('GET', `/customer_groups/${id}`, options),
   }
 
   // ============================================

@@ -2,10 +2,19 @@ module Spree
   class Promotion
     module Rules
       class CustomerGroup < PromotionRule
-        preference :customer_group_ids, :array, default: []
+        # Stored as raw IDs. Accepts prefixed IDs (`cg_…`) from API
+        # callers and decodes them on write so eligibility checks can
+        # compare against raw `customer_group_id` rows directly.
+        preference :customer_group_ids, :array, default: [], parse_on_set: normalize_id_preference(klass: Spree::CustomerGroup)
 
         def applicable?(promotable)
           promotable.is_a?(Spree::Order)
+        end
+
+        def customer_groups
+          return Spree::CustomerGroup.none if preferred_customer_group_ids.blank?
+
+          Spree::CustomerGroup.where(id: preferred_customer_group_ids)
         end
 
         def eligible?(order, _options = {})

@@ -1910,9 +1910,9 @@ en:
       product:
         description: Order includes specified product(s)
         name: Product(s)
-      taxon:
-        description: Order includes products with specified taxon(s)
-        name: Taxon(s)
+      category:
+        description: Order includes products in specified category(ies)
+        name: Category(ies)
       user:
         description: Available only to the specified customers
         name: User

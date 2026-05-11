@@ -12,7 +12,6 @@ module Spree
                    expires_at: [:string, nullable: true],
                    usage_limit: [:number, nullable: true],
                    match_policy: "'all' | 'any'",
-                   advertise: :boolean,
                    path: [:string, nullable: true],
                    kind: "'coupon_code' | 'automatic'",
                    multi_codes: :boolean,
@@ -24,7 +23,7 @@ module Spree
                    action_ids: 'string[]',
                    rule_ids: 'string[]'
 
-          attributes :starts_at, :expires_at, :usage_limit, :match_policy, :advertise,
+          attributes :starts_at, :expires_at, :usage_limit, :match_policy,
                      :path, :kind, :multi_codes, :number_of_codes, :code_prefix,
                      :promotion_category_id, :metadata,
                      created_at: :iso8601, updated_at: :iso8601

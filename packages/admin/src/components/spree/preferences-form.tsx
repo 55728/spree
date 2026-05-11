@@ -1,4 +1,5 @@
 import type { PreferenceField as PreferenceFieldDef } from '@spree/admin-sdk'
+import { CurrencySelect } from '@/components/spree/currency-select'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -73,6 +74,22 @@ export function PreferenceField({
 }: PreferenceFieldProps) {
   const id = `preference-${field.key}`
   const displayLabel = label ?? humanizeKey(field.key)
+
+  // Currency-typed preferences (`currency`, `default_currency`,
+  // `display_currency`, …) get the store's CurrencySelect — same
+  // localized `CODE — Full Name` rendering as the rest of admin.
+  if (isCurrencyKey(field.key)) {
+    return (
+      <Field>
+        <FieldLabel htmlFor={id}>{displayLabel}</FieldLabel>
+        <CurrencySelect
+          id={id}
+          value={(value as string) || undefined}
+          onChange={onChange}
+        />
+      </Field>
+    )
+  }
 
   switch (field.type) {
     case 'boolean':
@@ -193,4 +210,8 @@ function humanizeKey(key: string): string {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+function isCurrencyKey(key: string): boolean {
+  return key === 'currency' || key.endsWith('_currency')
 }
