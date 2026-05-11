@@ -1,6 +1,6 @@
 import type { PaymentMethod, PaymentMethodDisplayOn } from '@spree/admin-sdk'
 import { CreditCardIcon } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ActiveBadge } from '@/components/ui/badge'
 import { defineTable } from '@/lib/table-registry'
 
 const DISPLAY_ON_LABELS: Record<PaymentMethodDisplayOn, string> = {
@@ -61,14 +61,7 @@ defineTable<PaymentMethod>('payment-methods', {
       filterable: true,
       default: true,
       filterType: 'boolean',
-      render: (pm) =>
-        pm.active ? (
-          <Badge variant="outline">Active</Badge>
-        ) : (
-          <Badge variant="outline" className="text-muted-foreground">
-            Disabled
-          </Badge>
-        ),
+      render: (pm) => <ActiveBadge active={pm.active} activeLabel="Active" inactiveLabel="Disabled" />,
     },
   ],
 })

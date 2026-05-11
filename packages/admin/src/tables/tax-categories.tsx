@@ -1,6 +1,6 @@
 import type { TaxCategory } from '@spree/admin-sdk'
 import { PercentIcon } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ActiveBadge } from '@/components/ui/badge'
 import { defineTable } from '@/lib/table-registry'
 
 defineTable<TaxCategory>('tax-categories', {
@@ -44,7 +44,7 @@ defineTable<TaxCategory>('tax-categories', {
       key: 'is_default',
       label: 'Default',
       default: true,
-      render: (tc) => (tc.is_default ? <Badge variant="outline">Default</Badge> : null),
+      render: (tc) => <ActiveBadge active={tc.is_default} activeLabel="Default" dashWhenInactive />,
     },
   ],
 })
