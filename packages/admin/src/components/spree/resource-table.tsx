@@ -339,27 +339,27 @@ export function ResourceTable<T extends Record<string, any>>({
         hideSort={reorderActive}
       />
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <tr>
-              {reorderActive && <TableHead className="w-8" />}
-              {headerColumns.map((col) => (
-                <TableHead key={col.key} className={col.headerClassName}>
-                  {col.label}
-                </TableHead>
-              ))}
-            </tr>
-          </TableHeader>
-          {reorderActive ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+        {reorderActive ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={rows.map((r) => (r as any).id)}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={rows.map((r) => (r as any).id)}
-                strategy={verticalListSortingStrategy}
-              >
+              <Table>
+                <TableHeader>
+                  <tr>
+                    <TableHead className="w-8" />
+                    {headerColumns.map((col) => (
+                      <TableHead key={col.key} className={col.headerClassName}>
+                        {col.label}
+                      </TableHead>
+                    ))}
+                  </tr>
+                </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableEmpty colSpan={visibleColumns.length + 1}>Loading...</TableEmpty>
@@ -382,9 +382,20 @@ export function ResourceTable<T extends Record<string, any>>({
                     ))
                   )}
                 </TableBody>
-              </SortableContext>
-            </DndContext>
-          ) : (
+              </Table>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                {headerColumns.map((col) => (
+                  <TableHead key={col.key} className={col.headerClassName}>
+                    {col.label}
+                  </TableHead>
+                ))}
+              </tr>
+            </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableEmpty colSpan={visibleColumns.length}>Loading...</TableEmpty>
@@ -413,8 +424,8 @@ export function ResourceTable<T extends Record<string, any>>({
                 ))
               )}
             </TableBody>
-          )}
-        </Table>
+          </Table>
+        )}
         {meta && (
           <Pagination
             meta={meta}
