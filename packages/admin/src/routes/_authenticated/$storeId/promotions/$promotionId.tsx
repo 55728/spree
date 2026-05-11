@@ -3,8 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { DownloadIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
-import { Can } from '@/components/spree/can'
 import { formatCalculatorSummary } from '@/components/spree/calculator-summary'
+import { Can } from '@/components/spree/can'
 import { useConfirm } from '@/components/spree/confirm-dialog'
 import { PageHeader } from '@/components/spree/page-header'
 import { PreferencesForm } from '@/components/spree/preferences-form'
@@ -323,7 +323,6 @@ function PromotionBasicsCard({ form, promotion }: PromotionBasicsCardProps) {
               )}
             />
           </Field>
-
         </FieldGroup>
       </CardContent>
     </Card>
@@ -491,7 +490,10 @@ function RuleSummary({ draft }: { draft: PromotionRuleFormDraft }) {
  * when the list is missing or empty so the caller can fall back to a
  * count-based summary built from `*_ids`.
  */
-function nameList<T>(items: T[] | undefined, getLabel: (item: T) => string = defaultLabel): string | null {
+function nameList<T>(
+  items: T[] | undefined,
+  getLabel: (item: T) => string = defaultLabel,
+): string | null {
   if (!items?.length) return null
   const labels = items.map(getLabel).filter(Boolean)
   if (labels.length === 0) return null
@@ -500,7 +502,12 @@ function nameList<T>(items: T[] | undefined, getLabel: (item: T) => string = def
 }
 
 function defaultLabel(o: unknown): string {
-  if (o && typeof o === 'object' && 'name' in o && typeof (o as { name: unknown }).name === 'string') {
+  if (
+    o &&
+    typeof o === 'object' &&
+    'name' in o &&
+    typeof (o as { name: unknown }).name === 'string'
+  ) {
     return (o as { name: string }).name
   }
   return ''
@@ -837,11 +844,7 @@ function DefaultActionEditor({ draft, onSave, onClose }: PromotionActionEditorCo
       saveDisabled={!hasPreferences}
     >
       {hasPreferences ? (
-        <PreferencesForm
-          schema={draft.preference_schema}
-          values={values}
-          onChange={setValues}
-        />
+        <PreferencesForm schema={draft.preference_schema} values={values} onChange={setValues} />
       ) : (
         <p className="text-sm text-muted-foreground">This action has no configurable options.</p>
       )}

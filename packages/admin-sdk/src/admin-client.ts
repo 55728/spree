@@ -148,8 +148,8 @@ import type {
   AdminUser,
   ApiKey,
   Category,
-  CouponCode,
   Country,
+  CouponCode,
   CreditCard,
   Customer,
   CustomerGroup,
@@ -975,11 +975,7 @@ export class AdminClient {
           { ...options, params: params ? transformListParams(params) : undefined },
         ),
 
-      get: (
-        promotionId: string,
-        id: string,
-        options?: RequestOptions,
-      ): Promise<PromotionAction> =>
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<PromotionAction> =>
         this.request<PromotionAction>(
           'GET',
           `/promotions/${promotionId}/promotion_actions/${id}`,
@@ -991,11 +987,10 @@ export class AdminClient {
         params: PromotionActionCreateParams,
         options?: RequestOptions,
       ): Promise<PromotionAction> =>
-        this.request<PromotionAction>(
-          'POST',
-          `/promotions/${promotionId}/promotion_actions`,
-          { ...options, body: params },
-        ),
+        this.request<PromotionAction>('POST', `/promotions/${promotionId}/promotion_actions`, {
+          ...options,
+          body: params,
+        }),
 
       update: (
         promotionId: string,
@@ -1010,11 +1005,7 @@ export class AdminClient {
         ),
 
       delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
-        this.request<void>(
-          'DELETE',
-          `/promotions/${promotionId}/promotion_actions/${id}`,
-          options,
-        ),
+        this.request<void>('DELETE', `/promotions/${promotionId}/promotion_actions/${id}`, options),
     },
 
     rules: {
@@ -1029,11 +1020,7 @@ export class AdminClient {
           { ...options, params: params ? transformListParams(params) : undefined },
         ),
 
-      get: (
-        promotionId: string,
-        id: string,
-        options?: RequestOptions,
-      ): Promise<PromotionRule> =>
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<PromotionRule> =>
         this.request<PromotionRule>(
           'GET',
           `/promotions/${promotionId}/promotion_rules/${id}`,
@@ -1045,11 +1032,10 @@ export class AdminClient {
         params: PromotionRuleCreateParams,
         options?: RequestOptions,
       ): Promise<PromotionRule> =>
-        this.request<PromotionRule>(
-          'POST',
-          `/promotions/${promotionId}/promotion_rules`,
-          { ...options, body: params },
-        ),
+        this.request<PromotionRule>('POST', `/promotions/${promotionId}/promotion_rules`, {
+          ...options,
+          body: params,
+        }),
 
       update: (
         promotionId: string,
@@ -1057,18 +1043,13 @@ export class AdminClient {
         params: PromotionRuleUpdateParams,
         options?: RequestOptions,
       ): Promise<PromotionRule> =>
-        this.request<PromotionRule>(
-          'PATCH',
-          `/promotions/${promotionId}/promotion_rules/${id}`,
-          { ...options, body: params },
-        ),
+        this.request<PromotionRule>('PATCH', `/promotions/${promotionId}/promotion_rules/${id}`, {
+          ...options,
+          body: params,
+        }),
 
       delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
-        this.request<void>(
-          'DELETE',
-          `/promotions/${promotionId}/promotion_rules/${id}`,
-          options,
-        ),
+        this.request<void>('DELETE', `/promotions/${promotionId}/promotion_rules/${id}`, options),
     },
 
     couponCodes: {
@@ -1084,40 +1065,27 @@ export class AdminClient {
         ),
 
       get: (promotionId: string, id: string, options?: RequestOptions): Promise<CouponCode> =>
-        this.request<CouponCode>(
-          'GET',
-          `/promotions/${promotionId}/coupon_codes/${id}`,
-          options,
-        ),
+        this.request<CouponCode>('GET', `/promotions/${promotionId}/coupon_codes/${id}`, options),
     },
   }
 
   readonly promotionActions = {
     types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
-      this.request<{ data: ResourceTypeDefinition[] }>(
-        'GET',
-        '/promotion_actions/types',
-        options,
-      ),
+      this.request<{ data: ResourceTypeDefinition[] }>('GET', '/promotion_actions/types', options),
 
     calculators: (
       type: string,
       options?: RequestOptions,
     ): Promise<{ data: PromotionActionCalculator[] }> =>
-      this.request<{ data: PromotionActionCalculator[] }>(
-        'GET',
-        '/promotion_actions/calculators',
-        { ...options, params: { type } },
-      ),
+      this.request<{ data: PromotionActionCalculator[] }>('GET', '/promotion_actions/calculators', {
+        ...options,
+        params: { type },
+      }),
   }
 
   readonly promotionRules = {
     types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
-      this.request<{ data: ResourceTypeDefinition[] }>(
-        'GET',
-        '/promotion_rules/types',
-        options,
-      ),
+      this.request<{ data: ResourceTypeDefinition[] }>('GET', '/promotion_rules/types', options),
   }
 
   // ============================================

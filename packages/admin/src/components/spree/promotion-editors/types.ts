@@ -141,7 +141,12 @@ export function ruleDraftFromType(type: {
   return {
     _localId: newLocalId(),
     type: type.type,
-    key: type.type.split('::').pop()?.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase() ?? type.type,
+    key:
+      type.type
+        .split('::')
+        .pop()
+        ?.replace(/([a-z])([A-Z])/g, '$1_$2')
+        .toLowerCase() ?? type.type,
     label: type.label,
     preference_schema: type.preference_schema,
     preferences: defaultPreferences(type.preference_schema),
@@ -156,7 +161,12 @@ export function actionDraftFromType(type: {
   return {
     _localId: newLocalId(),
     type: type.type,
-    key: type.type.split('::').pop()?.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase() ?? type.type,
+    key:
+      type.type
+        .split('::')
+        .pop()
+        ?.replace(/([a-z])([A-Z])/g, '$1_$2')
+        .toLowerCase() ?? type.type,
     label: type.label,
     preference_schema: type.preference_schema,
     preferences: defaultPreferences(type.preference_schema),
@@ -246,7 +256,4 @@ export function actionDraftToPayload(draft: PromotionActionFormDraft): Promotion
 }
 
 // Re-exports for convenience (editors only need to import from one place).
-export type {
-  PromotionActionCalculatorParams,
-  PromotionActionLineItemParams,
-}
+export type { PromotionActionCalculatorParams, PromotionActionLineItemParams }

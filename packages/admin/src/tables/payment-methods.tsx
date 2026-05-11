@@ -61,7 +61,9 @@ defineTable<PaymentMethod>('payment-methods', {
       filterable: true,
       default: true,
       filterType: 'boolean',
-      render: (pm) => <ActiveBadge active={pm.active} activeLabel="Active" inactiveLabel="Disabled" />,
+      render: (pm) => (
+        <ActiveBadge active={pm.active} activeLabel="Active" inactiveLabel="Disabled" />
+      ),
     },
   ],
 })

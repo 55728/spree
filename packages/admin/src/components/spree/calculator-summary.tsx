@@ -32,7 +32,11 @@ interface CalculatorSummaryProps {
   className?: string
 }
 
-export function CalculatorSummary({ calculator, fallback = null, className }: CalculatorSummaryProps) {
+export function CalculatorSummary({
+  calculator,
+  fallback = null,
+  className,
+}: CalculatorSummaryProps) {
   const text = formatCalculatorSummary(calculator)
   if (!text) return <>{fallback}</>
   return <span className={className}>{text}</span>
@@ -43,7 +47,9 @@ export function CalculatorSummary({ calculator, fallback = null, className }: Ca
  * inside a larger sentence (e.g. "Free shipping · {summary}") or use
  * it in a non-React context.
  */
-export function formatCalculatorSummary(calculator: CalculatorPayload | null | undefined): string | null {
+export function formatCalculatorSummary(
+  calculator: CalculatorPayload | null | undefined,
+): string | null {
   if (!calculator) return null
 
   const label =

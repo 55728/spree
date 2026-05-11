@@ -118,10 +118,7 @@ export function ResourceMultiAutocomplete<T extends AutocompleteOption>({
   // Hydrate any selected ID not yet in the cache. Recomputed when
   // `value` or `cache` changes; the query key only contains the
   // missing ids so re-toggling a known id doesn't refetch.
-  const idsToHydrate = useMemo(
-    () => value.filter((id) => !cache.has(id)),
-    [value, cache],
-  )
+  const idsToHydrate = useMemo(() => value.filter((id) => !cache.has(id)), [value, cache])
 
   useQuery({
     queryKey: [queryKey, 'hydrate', idsToHydrate],
@@ -199,9 +196,7 @@ export function ResourceMultiAutocomplete<T extends AutocompleteOption>({
       <ComboboxChips ref={anchorRef}>
         <ComboboxValue>
           {(selected: T[]) =>
-            selected.map((opt) => (
-              <ComboboxChip key={opt.id}>{getOptionLabel(opt)}</ComboboxChip>
-            ))
+            selected.map((opt) => <ComboboxChip key={opt.id}>{getOptionLabel(opt)}</ComboboxChip>)
           }
         </ComboboxValue>
         <ComboboxChipsInput

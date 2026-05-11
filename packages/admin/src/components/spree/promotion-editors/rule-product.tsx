@@ -10,7 +10,11 @@ import type { PromotionRuleEditorContext } from './types'
 type MatchPolicy = 'any' | 'all' | 'none'
 const MATCH_POLICIES: readonly { value: MatchPolicy; label: string; description: string }[] = [
   { value: 'any', label: 'Any of these products', description: 'Order must contain at least one.' },
-  { value: 'all', label: 'All of these products', description: 'Order must contain every product.' },
+  {
+    value: 'all',
+    label: 'All of these products',
+    description: 'Order must contain every product.',
+  },
   {
     value: 'none',
     label: 'None of these products',
@@ -19,7 +23,8 @@ const MATCH_POLICIES: readonly { value: MatchPolicy; label: string; description:
 ]
 
 export function ProductRuleEditor({ draft, onSave, onClose }: PromotionRuleEditorContext) {
-  const initialMatchPolicy = ((draft.preferences?.match_policy as MatchPolicy) ?? 'any') as MatchPolicy
+  const initialMatchPolicy = ((draft.preferences?.match_policy as MatchPolicy) ??
+    'any') as MatchPolicy
   const [matchPolicy, setMatchPolicy] = useState<MatchPolicy>(
     MATCH_POLICIES.some((p) => p.value === initialMatchPolicy) ? initialMatchPolicy : 'any',
   )

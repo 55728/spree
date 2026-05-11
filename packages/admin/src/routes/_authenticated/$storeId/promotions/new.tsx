@@ -381,7 +381,6 @@ function NewPromotionPage() {
                       )}
                     />
                   </Field>
-
                 </FieldGroup>
               </CardContent>
             </Card>

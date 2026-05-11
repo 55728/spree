@@ -27,7 +27,8 @@ const MATCH_POLICIES: readonly { value: MatchPolicy; label: string; description:
  * ships; descendant categories match implicitly server-side.
  */
 export function CategoryRuleEditor({ draft, onSave, onClose }: PromotionRuleEditorContext) {
-  const initialMatchPolicy = ((draft.preferences?.match_policy as MatchPolicy) ?? 'any') as MatchPolicy
+  const initialMatchPolicy = ((draft.preferences?.match_policy as MatchPolicy) ??
+    'any') as MatchPolicy
   const [matchPolicy, setMatchPolicy] = useState<MatchPolicy>(
     MATCH_POLICIES.some((p) => p.value === initialMatchPolicy) ? initialMatchPolicy : 'any',
   )

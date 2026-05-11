@@ -82,11 +82,7 @@ export function PreferenceField({
     return (
       <Field>
         <FieldLabel htmlFor={id}>{displayLabel}</FieldLabel>
-        <CurrencySelect
-          id={id}
-          value={(value as string) || undefined}
-          onChange={onChange}
-        />
+        <CurrencySelect id={id} value={(value as string) || undefined} onChange={onChange} />
       </Field>
     )
   }

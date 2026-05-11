@@ -10,9 +10,7 @@ export function CustomerGroupRuleEditor({ draft, onSave, onClose }: PromotionRul
   const [groupIds, setGroupIds] = useState<string[]>(
     () => (draft.preferences?.customer_group_ids ?? []) as string[],
   )
-  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>(
-    draft.customer_groups ?? [],
-  )
+  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>(draft.customer_groups ?? [])
 
   function handleSave() {
     onSave({

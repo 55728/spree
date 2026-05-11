@@ -19,11 +19,7 @@ import type { PromotionActionEditorContext } from './types'
  * `CreateItemAdjustments`. Both wrap a Calculator: the merchant picks
  * the subclass, the form below renders that calculator's preferences.
  */
-export function AdjustmentActionEditor({
-  draft,
-  onSave,
-  onClose,
-}: PromotionActionEditorContext) {
+export function AdjustmentActionEditor({ draft, onSave, onClose }: PromotionActionEditorContext) {
   const { data: calculatorsData, isLoading: calculatorsLoading } = useQuery({
     queryKey: ['promotion-action-calculators', draft.type],
     queryFn: () => adminClient.promotionActions.calculators(draft.type),
@@ -31,9 +27,7 @@ export function AdjustmentActionEditor({
 
   const calculators = calculatorsData?.data ?? []
 
-  const [calculatorType, setCalculatorType] = useState<string>(
-    () => draft.calculator?.type ?? '',
-  )
+  const [calculatorType, setCalculatorType] = useState<string>(() => draft.calculator?.type ?? '')
   const [preferences, setPreferences] = useState<Record<string, unknown>>(
     () => draft.calculator?.preferences ?? {},
   )
@@ -99,9 +93,7 @@ export function AdjustmentActionEditor({
               <SelectValue
                 placeholder={calculatorsLoading ? 'Loading calculators…' : 'Select a calculator'}
               >
-                {(value) =>
-                  calculators.find((c) => c.type === value)?.label ?? (value as string)
-                }
+                {(value) => calculators.find((c) => c.type === value)?.label ?? (value as string)}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -142,11 +134,7 @@ function CalculatorPreferences({
   return (
     <FieldGroup>
       <FieldLabel>Calculator settings</FieldLabel>
-      <PreferencesForm
-        schema={calculator.preference_schema}
-        values={values}
-        onChange={onChange}
-      />
+      <PreferencesForm schema={calculator.preference_schema} values={values} onChange={onChange} />
     </FieldGroup>
   )
 }
