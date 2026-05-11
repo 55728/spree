@@ -21,6 +21,13 @@ module Spree
           def collection_includes
             [:stock_location, :variant]
           end
+
+          # `StockItem.for_store` already applies its own `distinct`, and
+          # `id`-asc gives a stable order across edits (variant.position
+          # alone isn't unique — see git blame for the row-jumping bug).
+          def apply_collection_sort(collection)
+            collection.order(Spree::StockItem.arel_table[:id].asc)
+          end
         end
       end
     end
