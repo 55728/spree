@@ -42,7 +42,7 @@ RSpec.describe Spree::Api::V3::Admin::PaymentMethodsController, type: :controlle
   describe 'POST #create' do
     let(:create_params) do
       {
-        type: 'Spree::PaymentMethod::Check',
+        type: 'check',
         name: 'Check on delivery',
         description: 'Pay by physical check',
         active: true,
@@ -55,7 +55,7 @@ RSpec.describe Spree::Api::V3::Admin::PaymentMethodsController, type: :controlle
         to change(Spree::PaymentMethod, :count).by(1)
 
       expect(response).to have_http_status(:created)
-      expect(json_response['type']).to eq('Spree::PaymentMethod::Check')
+      expect(json_response['type']).to eq('check')
       expect(json_response['name']).to eq('Check on delivery')
 
       created = Spree::PaymentMethod.find_by_prefix_id(json_response['id'])

@@ -19,9 +19,7 @@ RSpec.describe 'Admin Order Payments API', type: :request, swagger_doc: 'api-ref
       description 'Returns all payments for an order.'
       admin_scope :read, :payments
 
-      admin_sdk_example <<~JS
-        const { data: payments } = await client.orders.payments.list('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-payments/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -52,13 +50,7 @@ RSpec.describe 'Admin Order Payments API', type: :request, swagger_doc: 'api-ref
       description 'Creates a new payment for the order.'
       admin_scope :write, :payments
 
-      admin_sdk_example <<~JS
-        const payment = await client.orders.payments.create('or_UkLWZg9DAJ', {
-          payment_method_id: 'pm_UkLWZg9DAJ',
-          amount: 99.99,
-          source_id: 'cc_UkLWZg9DAJ',
-        })
-      JS
+      admin_sdk_example 'order-payments/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -101,9 +93,7 @@ RSpec.describe 'Admin Order Payments API', type: :request, swagger_doc: 'api-ref
       description 'Returns details of a specific payment.'
       admin_scope :read, :payments
 
-      admin_sdk_example <<~JS
-        const payment = await client.orders.payments.get('or_UkLWZg9DAJ', 'pay_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-payments/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -136,9 +126,7 @@ RSpec.describe 'Admin Order Payments API', type: :request, swagger_doc: 'api-ref
       description 'Captures a pending payment.'
       admin_scope :write, :payments
 
-      admin_sdk_example <<~JS
-        const payment = await client.orders.payments.capture('or_UkLWZg9DAJ', 'pay_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-payments/capture'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -194,9 +182,7 @@ RSpec.describe 'Admin Order Payments API', type: :request, swagger_doc: 'api-ref
       description 'Voids a payment.'
       admin_scope :write, :payments
 
-      admin_sdk_example <<~JS
-        const payment = await client.orders.payments.void('or_UkLWZg9DAJ', 'pay_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-payments/void'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

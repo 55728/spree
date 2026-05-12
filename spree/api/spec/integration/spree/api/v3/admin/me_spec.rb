@@ -12,12 +12,7 @@ RSpec.describe 'Admin Me API', type: :request, swagger_doc: 'api-reference/admin
       security [api_key: [], bearer_auth: []]
       description 'Returns the current admin user profile and a serialized list of permissions (CanCanCan rules). The SPA uses these to drive UI permission checks.'
 
-      admin_sdk_example <<~JS
-        const me = await client.me.get()
-        if (me.permissions.some((r) => r.allow && r.actions.includes('manage') && r.subjects.includes('Spree::Product'))) {
-          // show "Create product" button
-        }
-      JS
+      admin_sdk_example 'me/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

@@ -7,11 +7,11 @@ import { EditorShell } from './editor-shell'
 import type { PromotionRuleEditorContext } from './types'
 
 export function UserRuleEditor({ draft, onSave, onClose }: PromotionRuleEditorContext) {
-  const [userIds, setUserIds] = useState<string[]>(draft.user_ids ?? [])
+  const [customerIds, setCustomerIds] = useState<string[]>(draft.customer_ids ?? [])
   const [customers, setCustomers] = useState<Customer[]>(draft.customers ?? [])
 
   function handleSave() {
-    onSave({ ...draft, user_ids: userIds, customers })
+    onSave({ ...draft, customer_ids: customerIds, customers })
     onClose()
   }
 
@@ -21,9 +21,9 @@ export function UserRuleEditor({ draft, onSave, onClose }: PromotionRuleEditorCo
         <Field>
           <FieldLabel>Customers</FieldLabel>
           <ResourceMultiAutocomplete
-            queryKey="promotion-rule-users"
-            value={userIds}
-            onChange={setUserIds}
+            queryKey="promotion-rule-customers"
+            value={customerIds}
+            onChange={setCustomerIds}
             onResolvedOptionsChange={setCustomers}
             search={(q) => adminClient.customers.list({ search: q, limit: 10 })}
             hydrate={(ids) => adminClient.customers.list({ id_in: ids, limit: ids.length })}

@@ -70,6 +70,7 @@ export interface AddressInputParams {
   country_iso?: string
   state_abbr?: string
   phone?: string
+  company?: string
 }
 
 export interface OrderCreateParams {
@@ -79,6 +80,15 @@ export interface OrderCreateParams {
   use_customer_default_address?: boolean
   currency?: string
   market_id?: string
+  /** Channel ID. Defaults to the store primary channel when omitted. */
+  channel_id?: string
+  /**
+   * Stock Location ID to prefer for fulfillment. Order Routing's built-in
+   * `PreferredLocation` rule reads this and ranks the location first;
+   * routing falls back to the next rule when the preferred location can't
+   * cover the cart.
+   */
+  preferred_stock_location_id?: string
   locale?: string
   customer_note?: string
   internal_note?: string
@@ -92,6 +102,7 @@ export interface OrderCreateParams {
     quantity: number
     metadata?: Record<string, unknown>
   }>
+  /** Optional. Applied non-fatally; invalid codes do not block creation. */
   coupon_code?: string
 }
 
@@ -221,6 +232,8 @@ export interface MediaUpdateParams {
 
 export interface ProductCreateParams {
   name: string
+  /** Default price in the store's primary currency. */
+  price?: number
   description?: string
   slug?: string
   status?: 'draft' | 'active' | 'archived'
@@ -604,7 +617,6 @@ export interface PromotionCreateParams {
   multi_codes?: boolean
   number_of_codes?: number | null
   code_prefix?: string | null
-  store_ids?: string[]
   metadata?: Record<string, unknown>
   /** Optional rules to create alongside the promotion. Sent as a desired-set on update. */
   rules?: PromotionRuleDraft[]
@@ -626,7 +638,6 @@ export interface PromotionUpdateParams {
   multi_codes?: boolean
   number_of_codes?: number | null
   code_prefix?: string | null
-  store_ids?: string[]
   metadata?: Record<string, unknown>
   /** Replaces the rule set: rows with `id` update, rows without build, missing rows are removed. */
   rules?: PromotionRuleDraft[]
@@ -642,35 +653,42 @@ export interface PromotionUpdateParams {
  */
 export interface PromotionRuleDraft {
   id?: string
-  /** Fully-qualified STI subclass (`'Spree::Promotion::Rules::Currency'`). */
+  /**
+   * Wire shorthand for the rule subclass (e.g. `'currency'`, `'item_total'`,
+   * `'product'`, `'category'`). Returned by `GET /promotion_rules/types`.
+   */
   type: string
   preferences?: Record<string, unknown>
-  /** For `Rules::Product`. */
+  /** For the `product` rule. */
   product_ids?: string[]
-  /** For `Rules::Taxon` (renamed Category in 6.0). */
+  /** For the `category` rule. */
   category_ids?: string[]
-  /** For `Rules::User`. */
-  user_ids?: string[]
+  /** For the `user` rule — customers who qualify for the promotion. */
+  customer_ids?: string[]
 }
 
 export interface PromotionActionDraft {
   id?: string
-  /** Fully-qualified STI subclass (`'Spree::Promotion::Actions::FreeShipping'`). */
+  /**
+   * Wire shorthand for the action subclass (e.g. `'free_shipping'`,
+   * `'create_item_adjustments'`, `'create_adjustment'`). Returned by
+   * `GET /promotion_actions/types`.
+   */
   type: string
   preferences?: Record<string, unknown>
   /** For adjustment actions. */
   calculator?: PromotionActionCalculatorParams
-  /** For `CreateLineItems`. */
+  /** For `create_line_items`. */
   line_items?: PromotionActionLineItemParams[]
 }
 
 /**
  * Nested calculator payload for adjustment actions. Sent on
- * `Spree::Promotion::Actions::CreateAdjustment` and `CreateItemAdjustments`.
+ * `create_adjustment` and `create_item_adjustments`.
  *
- * - `type` — fully-qualified calculator STI subclass (e.g.
- *   `'Spree::Calculator::FlatRate'`); changing the type swaps the
- *   underlying calculator record.
+ * - `type` — wire shorthand for the calculator subclass (e.g. `'flat_rate'`,
+ *   `'flat_percent_item_total'`, `'percent_on_line_item'`); changing the
+ *   type swaps the underlying calculator record.
  * - `preferences` — per-calculator preference values (`amount`,
  *   `flat_percent`, `currency`, …). Keys are coerced via the typed
  *   setters server-side.
@@ -703,7 +721,7 @@ export interface PromotionActionCalculator {
 }
 
 export interface PromotionActionCreateParams {
-  /** Fully-qualified STI subclass (`'Spree::Promotion::Actions::FreeShipping'`). */
+  /** Wire shorthand for the action subclass (e.g. `'free_shipping'`). */
   type: string
   preferences?: Record<string, unknown>
   /** For adjustment actions — calculator subclass + its preference values. */
@@ -719,20 +737,20 @@ export interface PromotionActionUpdateParams {
 }
 
 export interface PromotionRuleCreateParams {
-  /** Fully-qualified STI subclass (`'Spree::Promotion::Rules::Currency'`). */
+  /** Wire shorthand for the rule subclass (e.g. `'currency'`, `'item_total'`). */
   type: string
   preferences?: Record<string, unknown>
-  /** For `Rules::Product` — prefixed product IDs to associate with this rule. */
+  /** For the `product` rule — prefixed product IDs to associate with this rule. */
   product_ids?: string[]
-  /** For `Rules::Taxon` — prefixed category IDs (Taxon is renamed to Category in 6.0). */
+  /** For the `category` rule — prefixed category IDs. */
   category_ids?: string[]
-  /** For `Rules::User` — prefixed user IDs. */
-  user_ids?: string[]
+  /** For the `user` rule — prefixed customer IDs. */
+  customer_ids?: string[]
 }
 
 export interface PromotionRuleUpdateParams {
   preferences?: Record<string, unknown>
   product_ids?: string[]
   category_ids?: string[]
-  user_ids?: string[]
+  customer_ids?: string[]
 }

@@ -22,8 +22,6 @@ import type {
  * created via the picker have no id until the parent form saves.
  */
 export interface PromotionRuleFormDraft extends PromotionRuleDraft {
-  /** Stable key for slot dispatch + React list keys (`product`, `category`, …). */
-  key: string
   /** Human-readable header rendered by the edit sheet. */
   label: string
   preference_schema: PreferenceField[]
@@ -45,7 +43,6 @@ export interface PromotionRuleFormDraft extends PromotionRuleDraft {
 
 /** Mirrors `PromotionRuleFormDraft` for actions. */
 export interface PromotionActionFormDraft extends Omit<PromotionActionDraft, 'calculator'> {
-  key: string
   label: string
   preference_schema: PreferenceField[]
   _localId: string
@@ -69,7 +66,7 @@ export interface PromotionActionCalculatorFormDraft extends PromotionActionCalcu
  * the parent persists everything via a single `PATCH /promotions`
  * when the user hits Save on the page header.
  *
- * Slot key: `promotion.rule_form.<draft.key>`
+ * Slot key: `promotion.rule_form.<draft.type>`
  */
 export interface PromotionRuleEditorContext {
   draft: PromotionRuleFormDraft
@@ -89,7 +86,7 @@ export interface PromotionActionEditorContext {
  * "United States, Canada" for Country, "3 products · any" for Product.
  * Falls back to a generic preferences dump when no slot is registered.
  *
- * Slot key: `promotion.rule_summary.<draft.key>`
+ * Slot key: `promotion.rule_summary.<draft.type>`
  */
 export interface PromotionRuleSummaryContext {
   draft: PromotionRuleFormDraft
@@ -141,12 +138,6 @@ export function ruleDraftFromType(type: {
   return {
     _localId: newLocalId(),
     type: type.type,
-    key:
-      type.type
-        .split('::')
-        .pop()
-        ?.replace(/([a-z])([A-Z])/g, '$1_$2')
-        .toLowerCase() ?? type.type,
     label: type.label,
     preference_schema: type.preference_schema,
     preferences: defaultPreferences(type.preference_schema),
@@ -161,12 +152,6 @@ export function actionDraftFromType(type: {
   return {
     _localId: newLocalId(),
     type: type.type,
-    key:
-      type.type
-        .split('::')
-        .pop()
-        ?.replace(/([a-z])([A-Z])/g, '$1_$2')
-        .toLowerCase() ?? type.type,
     label: type.label,
     preference_schema: type.preference_schema,
     preferences: defaultPreferences(type.preference_schema),
@@ -179,13 +164,12 @@ export function ruleDraftFromRule(rule: PromotionRule): PromotionRuleFormDraft {
     _localId: rule.id,
     id: rule.id,
     type: rule.type,
-    key: rule.key,
     label: rule.label,
     preference_schema: rule.preference_schema,
     preferences: rule.preferences,
     product_ids: rule.product_ids ?? undefined,
     category_ids: rule.category_ids ?? undefined,
-    user_ids: rule.user_ids ?? undefined,
+    customer_ids: rule.customer_ids ?? undefined,
     products: rule.products,
     categories: rule.categories,
     customers: rule.customers,
@@ -199,7 +183,6 @@ export function actionDraftFromAction(action: PromotionAction): PromotionActionF
     _localId: action.id,
     id: action.id,
     type: action.type,
-    key: action.key,
     label: action.label,
     preference_schema: action.preference_schema,
     preferences: action.preferences,
@@ -232,21 +215,20 @@ function defaultPreferences(schema: PreferenceField[]): Record<string, unknown> 
 export function ruleDraftToPayload(draft: PromotionRuleFormDraft): PromotionRuleDraft {
   const {
     _localId: _,
-    key: __,
-    label: ___,
-    preference_schema: ____,
-    products: _____,
-    categories: ______,
-    customers: _______,
-    customer_groups: ________,
-    countries: _________,
+    label: __,
+    preference_schema: ___,
+    products: ____,
+    categories: _____,
+    customers: ______,
+    customer_groups: _______,
+    countries: ________,
     ...rest
   } = draft
   return rest
 }
 
 export function actionDraftToPayload(draft: PromotionActionFormDraft): PromotionActionDraft {
-  const { _localId: _, key: __, label: ___, preference_schema: ____, calculator, ...rest } = draft
+  const { _localId: _, label: __, preference_schema: ___, calculator, ...rest } = draft
   return {
     ...rest,
     calculator: calculator

@@ -120,15 +120,15 @@ module Spree
     # `[{ type:, preferences:, product_ids:, ... }]` and reconciles to
     # the desired set: existing rows update by `id`, new rows build,
     # missing rows destroy. Falls through to AR's standard writer
-    # when assigned a real array of `Spree::PromotionRule` instances
-    # (Rails internals do this on association swap).
-    def rules=(rules_params)
-      assign_subclassed_collection(:promotion_rules, rules_params, registry: Spree.promotions.rules)
+    # when assigned `Spree::PromotionRule` instances (Rails internals
+    # do this on association swap).
+    def rules=(rows)
+      assign_subclassed(:promotion_rules, rows)
     end
 
-    # Same shape as `rules=` for promotion actions.
-    def actions=(actions_params)
-      assign_subclassed_collection(:promotion_actions, actions_params, registry: Spree.promotions.actions)
+    # Mirrors `rules=` for promotion actions.
+    def actions=(rows)
+      assign_subclassed(:promotion_actions, rows)
     end
 
     def pending_rules_or_actions?
@@ -303,80 +303,86 @@ module Spree
 
     private
 
-    def assign_subclassed_collection(association, params, registry:)
-      first = Array(params).first
-      return public_send(:"#{association}=", params) if first.nil? || first.is_a?(Spree.base_class)
+    # Reconciles `association` (`:promotion_rules` or `:promotion_actions`)
+    # to the desired set of `rows`. Each row is a `{type, id, preferences,
+    # calculator, <assoc>_ids}` hash. New rows are built, existing rows
+    # (matched by `id`) updated, anything missing destroyed.
+    #
+    # When the promotion is a new record the work is deferred until
+    # `after_save` so child rows can FK to a persisted parent.
+    def assign_subclassed(association, rows)
+      first = Array(rows).first
+      return public_send(:"#{association}=", rows) if first.nil? || first.is_a?(Spree.base_class)
 
-      pending = Array(params).map { |entry| entry.respond_to?(:to_h) ? entry.to_h.with_indifferent_access : entry.with_indifferent_access }
+      pending = Array(rows).map { |entry| entry.respond_to?(:to_h) ? entry.to_h.with_indifferent_access : entry.with_indifferent_access }
 
       if new_record?
-        instance_variable_set(:"@pending_#{association}", { params: pending, registry: registry })
+        instance_variable_set(:"@pending_#{association}", pending)
         return
       end
 
-      apply_subclassed_collection(association, pending, registry: registry)
+      reconcile_subclassed(association, pending)
     end
 
     def apply_pending_rules_and_actions
       if (pending = @pending_promotion_rules)
-        apply_subclassed_collection(:promotion_rules, pending[:params], registry: pending[:registry])
+        reconcile_subclassed(:promotion_rules, pending)
         @pending_promotion_rules = nil
       end
       if (pending = @pending_promotion_actions)
-        apply_subclassed_collection(:promotion_actions, pending[:params], registry: pending[:registry])
+        reconcile_subclassed(:promotion_actions, pending)
         @pending_promotion_actions = nil
       end
     end
 
-    # Applied to a persisted promotion. Reconciles `association` to the
-    # supplied desired-set: rows with `id:` update, rows without build,
-    # rows missing from the payload are destroyed.
-    def apply_subclassed_collection(association, rows, registry:)
+    def reconcile_subclassed(association, rows)
       collection = public_send(association)
-      kept_ids = []
-
-      rows.each do |row|
-        klass = registry.find { |k| k.to_s == row[:type] } if row[:type]
-        klass ||= collection.find_by(id: decode_id(row[:id]))&.class
-
-        next unless klass
-
-        record = if row[:id].present?
-                   collection.find { |r| r.id == decode_id(row[:id]) } || collection.find_by(id: decode_id(row[:id]))
-                 else
-                   collection.build(type: klass.to_s)
-                 end
-
-        next unless record
-
-        # Promote to the right STI subclass when building new (collection.build
-        # uses the declared class_name, which is the parent).
-        record = record.becomes(klass) if record.class != klass
-        assign_subclass_attributes(record, row)
-        record.save! if record.changed? || record.new_record?
-        kept_ids << record.id
-      end
-
+      kept_ids = rows.filter_map { |row| save_subclassed_row(collection, row) }
       collection.where.not(id: kept_ids).destroy_all if kept_ids.any? || rows.empty?
     end
 
-    def assign_subclass_attributes(record, row)
-      preferences = row.delete(:preferences)
-      calculator = row.delete(:calculator)
-      row.delete(:type)
-      row.delete(:id)
+    def save_subclassed_row(collection, row)
+      record = find_or_build_subclassed(collection, row)
+      return nil unless record
 
-      record.assign_attributes(row) if row.any?
+      preferences = row[:preferences]
+      calculator = row[:calculator]
+      attrs = row.except(:id, :type, :preferences, :calculator)
 
-      if preferences.present?
-        preferences.to_h.each do |key, value|
-          next unless record.has_preference?(key.to_sym)
+      # Any `*_ids` mass-assignment on a new record builds join rows with
+      # a nil FK to the parent — they fail `presence: true` on autosave.
+      # Defer those assignments until after the rule itself is persisted.
+      deferred_ids, scalar_attrs = attrs.partition { |k, _| record.new_record? && k.to_s.end_with?('_ids') }
+      record.assign_attributes(scalar_attrs.to_h) if scalar_attrs.any?
 
-          record.set_preference(key.to_sym, value)
-        end
+      preferences&.each do |key, value|
+        record.set_preference(key.to_sym, value) if record.has_preference?(key.to_sym)
+      end
+      record.assign_calculator_attributes(calculator) if calculator.present? && record.respond_to?(:assign_calculator_attributes)
+
+      # Always save — `record.changed?` doesn't reflect changes to
+      # preferences (stored in a serialized hash) or to the calculator
+      # association, and we may have built a new record above.
+      record.save!
+
+      deferred_ids.each { |key, value| record.public_send("#{key}=", value) }
+      record.save! if record.changed?
+
+      record.id
+    end
+
+    def find_or_build_subclassed(collection, row)
+      if row[:id].present?
+        id = decode_id(row[:id])
+        existing = collection.find { |r| r.id == id } || collection.find_by(id: id)
+        return existing if existing
       end
 
-      record.assign_calculator_attributes(calculator) if calculator.present? && record.respond_to?(:assign_calculator_attributes)
+      klass = collection.proxy_association.klass.find_by_api_type(row[:type])
+      return nil unless klass
+
+      record = collection.build(type: klass.to_s)
+      record.class == klass ? record : record.becomes(klass)
     end
 
     def decode_id(value)

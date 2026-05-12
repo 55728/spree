@@ -22,9 +22,7 @@ RSpec.describe 'Admin Store API', type: :request, swagger_doc: 'api-reference/ad
       description 'Returns the current store configuration. The store is resolved from the request context (host or admin selection); there is no `id` parameter.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const store = await client.store.get()
-      JS
+      admin_sdk_example 'store/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -62,11 +60,7 @@ RSpec.describe 'Admin Store API', type: :request, swagger_doc: 'api-reference/ad
       description 'Updates the current store configuration.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const store = await client.store.update({
-          name: 'My Store'
-        })
-      JS
+      admin_sdk_example 'store/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

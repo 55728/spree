@@ -97,7 +97,7 @@ module Spree
           def resolve_subclass(type_name)
             return nil if type_name.blank?
 
-            self.class.subclass_registry.call.find { |klass| klass.to_s == type_name }
+            self.class.subclass_registry.call.find { |klass| klass.api_type == type_name.to_s }
           end
 
           def render_unknown_type

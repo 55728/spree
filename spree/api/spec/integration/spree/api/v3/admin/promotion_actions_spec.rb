@@ -18,9 +18,7 @@ RSpec.describe 'Admin Promotion Actions API', type: :request, swagger_doc: 'api-
       security [api_key: [], bearer_auth: []]
       admin_scope :read, :promotions
 
-      admin_sdk_example <<~JS
-        const { data: actions } = await client.promotions.actions.list('promo_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'promotion-actions/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -35,7 +33,7 @@ RSpec.describe 'Admin Promotion Actions API', type: :request, swagger_doc: 'api-
         run_test! do |response|
           data = JSON.parse(response.body)['data']
           expect(data.size).to eq(1)
-          expect(data.first['type']).to eq('Spree::Promotion::Actions::FreeShipping')
+          expect(data.first['type']).to eq('free_shipping')
           expect(data.first).to have_key('preference_schema')
         end
       end
@@ -46,21 +44,17 @@ RSpec.describe 'Admin Promotion Actions API', type: :request, swagger_doc: 'api-
       produces 'application/json'
       consumes 'application/json'
       security [api_key: [], bearer_auth: []]
-      description 'Adds a new action to a promotion. The `type` is the fully-qualified subclass; pick from `GET /promotion_actions/types`.'
+      description 'Adds a new action to a promotion. The `type` is the wire shorthand from `GET /promotion_actions/types` (e.g. `free_shipping`, `create_item_adjustments`). Fully-qualified Ruby class names are also accepted for backward compatibility.'
       admin_scope :write, :promotions
 
-      admin_sdk_example <<~JS
-        const action = await client.promotions.actions.create('promo_UkLWZg9DAJ', {
-          type: 'Spree::Promotion::Actions::FreeShipping'
-        })
-      JS
+      admin_sdk_example 'promotion-actions/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
       parameter name: :body, in: :body, schema: {
         type: :object,
         properties: {
-          type: { type: :string },
+          type: { type: :string, example: 'free_shipping' },
           preferences: { type: :object, additionalProperties: true }
         },
         required: ['type']
@@ -68,18 +62,18 @@ RSpec.describe 'Admin Promotion Actions API', type: :request, swagger_doc: 'api-
 
       response '201', 'action created' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
-        let(:body) { { type: 'Spree::Promotion::Actions::FreeShipping' } }
+        let(:body) { { type: 'free_shipping' } }
 
         run_test! do |response|
           data = JSON.parse(response.body)
-          expect(data['type']).to eq('Spree::Promotion::Actions::FreeShipping')
+          expect(data['type']).to eq('free_shipping')
           expect(data['promotion_id']).to eq(promotion.prefixed_id)
         end
       end
 
       response '422', 'unknown action type' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
-        let(:body) { { type: 'Bogus::Action' } }
+        let(:body) { { type: 'bogus_action' } }
 
         run_test! do |response|
           expect(JSON.parse(response.body)['error']['code']).to eq('unknown_promotion_action_type')

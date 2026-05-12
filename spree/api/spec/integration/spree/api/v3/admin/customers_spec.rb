@@ -16,13 +16,7 @@ RSpec.describe 'Admin Customers API', type: :request, swagger_doc: 'api-referenc
       description 'Returns a paginated list of customers. Supports Ransack search/filters.'
       admin_scope :read, :customers
 
-      admin_sdk_example <<~JS
-        const { data: customers } = await client.customers.list({
-          search: 'jane',
-          sort: '-created_at',
-          limit: 25,
-        })
-      JS
+      admin_sdk_example 'customers/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -54,16 +48,7 @@ RSpec.describe 'Admin Customers API', type: :request, swagger_doc: 'api-referenc
       description 'Creates a customer. No welcome email is sent automatically.'
       admin_scope :write, :customers
 
-      admin_sdk_example <<~JS
-        const customer = await client.customers.create({
-          email: 'jane@example.com',
-          first_name: 'Jane',
-          last_name: 'Doe',
-          phone: '+1 212 555 1234',
-          tags: ['wholesale'],
-          accepts_email_marketing: true,
-        })
-      JS
+      admin_sdk_example 'customers/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -104,11 +89,7 @@ RSpec.describe 'Admin Customers API', type: :request, swagger_doc: 'api-referenc
       description 'Returns full customer details including computed order stats (orders_count, total_spent, last_order_completed_at).'
       admin_scope :read, :customers
 
-      admin_sdk_example <<~JS
-        const customer = await client.customers.get('cus_UkLWZg9DAJ', {
-          expand: ['addresses', 'store_credits'],
-        })
-      JS
+      admin_sdk_example 'customers/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -138,12 +119,7 @@ RSpec.describe 'Admin Customers API', type: :request, swagger_doc: 'api-referenc
       description 'Updates customer attributes. `tags` replaces the full set.'
       admin_scope :write, :customers
 
-      admin_sdk_example <<~JS
-        const customer = await client.customers.update('cus_UkLWZg9DAJ', {
-          first_name: 'Updated',
-          tags: ['wholesale', 'vip'],
-        })
-      JS
+      admin_sdk_example 'customers/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -179,9 +155,7 @@ RSpec.describe 'Admin Customers API', type: :request, swagger_doc: 'api-referenc
       description 'Deletes a customer. Returns 422 if the customer has any orders.'
       admin_scope :write, :customers
 
-      admin_sdk_example <<~JS
-        await client.customers.delete('cus_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customers/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

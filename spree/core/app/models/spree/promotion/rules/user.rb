@@ -10,8 +10,19 @@ module Spree
                                         dependent: :destroy
         has_many :users, through: :promotion_rule_users, class_name: "::#{Spree.user_class}"
 
+        # Customers, not admin users — the rule keys off `Spree::Order#user_id`.
+        # The data layer keeps the `users` association (legacy column name);
+        # the API exposes the same set as `customer_ids`.
         def self.additional_permitted_attributes
-          [user_ids: []]
+          [customer_ids: []]
+        end
+
+        def customer_ids
+          user_ids
+        end
+
+        def customer_ids=(ids)
+          self.user_ids = ids
         end
 
         #

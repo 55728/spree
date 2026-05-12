@@ -19,9 +19,7 @@ RSpec.describe 'Admin Exports API', type: :request, swagger_doc: 'api-reference/
                   'Polled by the admin SPA to detect when an export finishes (`done: true`).'
       admin_scope :read, :exports
 
-      admin_sdk_example <<~JS
-        const { data: exports } = await client.exports.list()
-      JS
+      admin_sdk_example 'exports/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -53,12 +51,7 @@ RSpec.describe 'Admin Exports API', type: :request, swagger_doc: 'api-reference/
       MD
       admin_scope :write, :exports
 
-      admin_sdk_example <<~JS
-        const exp = await client.exports.create({
-          type: 'Spree::Exports::Products',
-          search_params: { name_cont: 'shirt' }
-        })
-      JS
+      admin_sdk_example 'exports/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -117,9 +110,7 @@ RSpec.describe 'Admin Exports API', type: :request, swagger_doc: 'api-reference/
       description 'Returns export status. While `done` is `false`, the SPA continues polling.'
       admin_scope :read, :exports
 
-      admin_sdk_example <<~JS
-        const exp = await client.exports.get('exp_xxx')
-      JS
+      admin_sdk_example 'exports/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -141,9 +132,7 @@ RSpec.describe 'Admin Exports API', type: :request, swagger_doc: 'api-reference/
       description 'Removes the export and purges its attachment.'
       admin_scope :write, :exports
 
-      admin_sdk_example <<~JS
-        await client.exports.delete('exp_xxx')
-      JS
+      admin_sdk_example 'exports/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -180,20 +169,7 @@ RSpec.describe 'Admin Exports API', type: :request, swagger_doc: 'api-reference/
                   'carry the JWT.'
       admin_scope :read, :exports
 
-      admin_sdk_example <<~JS
-        // Fetch with the Bearer token, then drive the browser download:
-        const res = await fetch(exp.download_url, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = Object.assign(document.createElement('a'), {
-          href: url,
-          download: exp.filename
-        })
-        a.click()
-        URL.revokeObjectURL(url)
-      JS
+      admin_sdk_example 'exports/download'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

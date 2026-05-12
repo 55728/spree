@@ -26,9 +26,7 @@ RSpec.describe 'Admin Staff API', type: :request, swagger_doc: 'api-reference/ad
       description 'Returns admin users with at least one role assignment on the current store.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: staff } = await client.adminUsers.list()
-      JS
+      admin_sdk_example 'admin-users/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -54,9 +52,7 @@ RSpec.describe 'Admin Staff API', type: :request, swagger_doc: 'api-reference/ad
       security [api_key: [], bearer_auth: []]
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const staff = await client.adminUsers.get('admin_xxx')
-      JS
+      admin_sdk_example 'admin-users/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -83,12 +79,7 @@ RSpec.describe 'Admin Staff API', type: :request, swagger_doc: 'api-reference/ad
                   '`role_ids` is a complete replacement — roles not in the array are removed for this store.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const staff = await client.adminUsers.update('admin_xxx', {
-          first_name: 'Ada',
-          role_ids: ['role_xxx']
-        })
-      JS
+      admin_sdk_example 'admin-users/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -120,9 +111,7 @@ RSpec.describe 'Admin Staff API', type: :request, swagger_doc: 'api-reference/ad
       description "Removes the user's role assignments on the current store. The account is preserved — the user keeps access to any other stores."
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        await client.adminUsers.delete('admin_xxx')
-      JS
+      admin_sdk_example 'admin-users/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

@@ -71,7 +71,12 @@ class Spree::Base < ApplicationRecord
     column_names.reject { |c| skipped_attributes.include?(c.to_s) }
   end
 
-  def self.json_api_type
+  # Public-API shorthand for this class, used as the `type` value on the
+  # wire (e.g. `"currency"` for `Spree::Promotion::Rules::Currency`,
+  # `"flat_rate"` for `Spree::Calculator::FlatRate`). Defaults to the
+  # demodulized + underscored leaf; override on a subclass when the wire
+  # format should stay stable across class renames.
+  def self.api_type
     to_s.demodulize.underscore
   end
 

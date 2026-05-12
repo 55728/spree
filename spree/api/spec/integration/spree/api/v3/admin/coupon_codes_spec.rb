@@ -21,9 +21,7 @@ RSpec.describe 'Admin Coupon Codes API', type: :request, swagger_doc: 'api-refer
       description 'Returns the auto-generated coupon codes for a multi-code promotion. Single-code promotions store the code on the promotion itself; this endpoint returns an empty list for them.'
       admin_scope :read, :promotions
 
-      admin_sdk_example <<~JS
-        const { data: coupons } = await client.promotions.couponCodes.list('promo_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'coupon-codes/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

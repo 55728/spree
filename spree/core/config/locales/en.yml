@@ -1890,8 +1890,8 @@ en:
     promotion_rule: Promotion Rule
     promotion_rule_types:
       category:
-        description: Order includes products in specified category(ies)
-        name: Category(ies)
+        description: Order includes products in specified categories
+        name: Categories
       country:
         description: Limit to orders with shipping address in a specific country
         name: Country
@@ -1918,10 +1918,10 @@ en:
         name: Product(s)
       user:
         description: Available only to the specified customers
-        name: User
+        name: Customers
       user_logged_in:
-        description: Available only to logged in users
-        name: User Logged In
+        description: Available only to logged in customers
+        name: Only logged in customers
     promotion_uses: Promotion uses
     promotionable: Promotable
     promotions: Promotions

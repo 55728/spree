@@ -20,9 +20,7 @@ RSpec.describe 'Admin Customer Credit Cards API', type: :request, swagger_doc: '
       description 'Returns the customer\'s saved credit cards. Useful for off-session admin charges via `POST /admin/orders/:id/payments { source_id }`.'
       admin_scope :read, :customers
 
-      admin_sdk_example <<~JS
-        const { data: cards } = await client.customers.creditCards.list('cus_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customer-credit-cards/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -54,9 +52,7 @@ RSpec.describe 'Admin Customer Credit Cards API', type: :request, swagger_doc: '
       description 'Returns a saved credit card by ID.'
       admin_scope :read, :customers
 
-      admin_sdk_example <<~JS
-        const card = await client.customers.creditCards.get('cus_UkLWZg9DAJ', 'cc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customer-credit-cards/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -83,9 +79,7 @@ RSpec.describe 'Admin Customer Credit Cards API', type: :request, swagger_doc: '
       description 'Deletes a saved credit card.'
       admin_scope :write, :customers
 
-      admin_sdk_example <<~JS
-        await client.customers.creditCards.delete('cus_UkLWZg9DAJ', 'cc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customer-credit-cards/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

@@ -23,11 +23,7 @@ RSpec.describe 'Admin Order Store Credits API', type: :request, swagger_doc: 'ap
                   'When `amount` is omitted, applies up to the order outstanding balance.'
       admin_scope :write, :store_credits
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.storeCredits.apply('or_UkLWZg9DAJ', {
-          amount: 25.00,
-        })
-      JS
+      admin_sdk_example 'order-store-credits/apply'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -58,9 +54,7 @@ RSpec.describe 'Admin Order Store Credits API', type: :request, swagger_doc: 'ap
       description "Removes any applied store credit from the order."
       admin_scope :write, :store_credits
 
-      admin_sdk_example <<~JS
-        await client.orders.storeCredits.remove('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-store-credits/remove'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

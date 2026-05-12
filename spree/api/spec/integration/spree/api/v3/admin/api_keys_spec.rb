@@ -20,9 +20,7 @@ RSpec.describe 'Admin API Keys API', type: :request, swagger_doc: 'api-reference
                   'Secret keys are listed by `token_prefix` only — the plaintext token is delivered exactly once on create.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: keys } = await client.apiKeys.list()
-      JS
+      admin_sdk_example 'api-keys/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -53,14 +51,7 @@ RSpec.describe 'Admin API Keys API', type: :request, swagger_doc: 'api-reference
                   'publishable keys expose their token on every read since they are intended for client-side use.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const key = await client.apiKeys.create({
-          name: 'Backend integration',
-          key_type: 'secret',
-          scopes: ['read_orders', 'write_orders']
-        })
-        // `key.plaintext_token` is available only on this response.
-      JS
+      admin_sdk_example 'api-keys/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -106,9 +97,7 @@ RSpec.describe 'Admin API Keys API', type: :request, swagger_doc: 'api-reference
       security [api_key: [], bearer_auth: []]
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const key = await client.apiKeys.get('key_xxx')
-      JS
+      admin_sdk_example 'api-keys/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -129,9 +118,7 @@ RSpec.describe 'Admin API Keys API', type: :request, swagger_doc: 'api-reference
       security [api_key: [], bearer_auth: []]
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        await client.apiKeys.delete('key_xxx')
-      JS
+      admin_sdk_example 'api-keys/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -155,9 +142,7 @@ RSpec.describe 'Admin API Keys API', type: :request, swagger_doc: 'api-reference
       description 'Marks the key revoked. Future requests using its token will fail; the row is preserved for audit.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const key = await client.apiKeys.revoke('key_xxx')
-      JS
+      admin_sdk_example 'api-keys/revoke'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

@@ -18,14 +18,21 @@ module Spree
         calculator.class.to_s if calculator
       end
 
+      # Look up a calculator by its wire shorthand (`'flat_rate'`) against
+      # the calculators registered for this parent. Scoping to the
+      # registered set ensures a `CreateAdjustment` action can't be
+      # assigned a shipping-only calculator just by knowing its shorthand.
       def calculator_type=(calculator_type)
-        klass = calculator_type.constantize if calculator_type
+        return if calculator_type.blank?
+
+        registry = self.class.respond_to?(:calculators) ? self.class.calculators : []
+        klass = registry.find { |k| k.api_type == calculator_type.to_s }
         self.calculator = klass.new if klass && !calculator.instance_of?(klass)
       end
 
       # API v3 writer for the flat `calculator: { type:, preferences: {} }`
-      # payload. Routes preferences through `set_preference` so values
-      # are coerced by the typed `preferred_<name>=` setters — direct
+      # payload. Routes preferences through `set_preference` so values are
+      # coerced by the typed `preferred_<name>=` setters — direct
       # assignment to the serialized hash would skip coercion.
       def assign_calculator_attributes(attrs)
         return if attrs.nil?

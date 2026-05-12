@@ -26,12 +26,15 @@ module Spree
             # — the has_many-through association can cache stale results when
             # `current_store` was loaded earlier in the request (e.g. by the
             # auth layer).
-            installed_types = Spree::PaymentMethod
-                                .joins(:store_payment_methods)
-                                .where(spree_payment_methods_stores: { store_id: current_store.id })
-                                .pluck(:type)
+            installed_class_names = Spree::PaymentMethod
+                                      .joins(:store_payment_methods)
+                                      .where(spree_payment_methods_stores: { store_id: current_store.id })
+                                      .pluck(:type)
+            installed_shorthands = installed_class_names.filter_map do |name|
+              name.safe_constantize&.api_type
+            end
             available = model_class.subclasses_with_preference_schema.reject do |entry|
-              installed_types.include?(entry[:type])
+              installed_shorthands.include?(entry[:type])
             end
 
             render json: { data: available }

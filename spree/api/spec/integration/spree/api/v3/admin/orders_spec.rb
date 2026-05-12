@@ -16,14 +16,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Returns a paginated list of orders for the current store.'
       admin_scope :read, :orders
 
-      admin_sdk_example <<~JS
-        const { data: orders, meta } = await client.orders.list({
-          status_eq: 'complete',
-          completed_at_gt: '2026-01-01',
-          sort: '-completed_at',
-          limit: 25,
-        })
-      JS
+      admin_sdk_example 'orders/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -71,70 +64,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       produces 'application/json'
       security [api_key: [], bearer_auth: []]
 
-      admin_sdk_example <<~JS
-        // One-shot order create: customer, items, addresses, market, channel,
-        // notes, metadata, and a coupon code in a single call. Everything
-        // except `email` is optional.
-        const order = await client.orders.create({
-          email: 'jane@example.com',
-          customer_id: 'cus_UkLWZg9DAJ',           // Existing customer; omit for guest orders
-          use_customer_default_address: false,     // true to copy the customer's saved addresses
-
-          currency: 'USD',
-          market_id: 'mkt_UkLWZg9DAJ',
-          channel_id: 'ch_UkLWZg9DAJ',             // Optional — defaults to the store's primary channel
-          locale: 'en-US',
-
-          // Pin the order's preferred fulfillment location. Order Routing's
-          // built-in PreferredLocation rule ranks this location first when
-          // it stocks the cart's items; if it doesn't, routing falls back
-          // to the next rule (Minimize Splits → Default Location).
-          preferred_stock_location_id: 'sloc_UkLWZg9DAJ',
-
-          customer_note: 'Please leave at the front desk.',
-          internal_note: 'VIP customer — handle with care.',
-          metadata: {
-            external_reference: 'subscription_invoice_2026_04',
-            source: 'recurring-engine',
-          },
-
-          // Items: each variant_id + quantity. Optional metadata per line.
-          items: [
-            { variant_id: 'variant_k5nR8xLq', quantity: 2 },
-            { variant_id: 'variant_QXyZ12abCD', quantity: 1, metadata: { gift: true } },
-          ],
-
-          // Provide addresses inline OR by ID (existing customer addresses).
-          shipping_address: {
-            first_name: 'Jane',
-            last_name: 'Doe',
-            address1: '350 Fifth Avenue',
-            address2: 'Floor 42',
-            city: 'New York',
-            postal_code: '10118',
-            country_iso: 'US',
-            state_abbr: 'NY',
-            phone: '+1 212 555 1234',
-            company: 'Acme Inc.',
-          },
-          // shipping_address_id: 'addr_UkLWZg9DAJ',  // alternative to inline
-
-          billing_address: {
-            first_name: 'Jane',
-            last_name: 'Doe',
-            address1: '350 Fifth Avenue',
-            city: 'New York',
-            postal_code: '10118',
-            country_iso: 'US',
-            state_abbr: 'NY',
-            phone: '+1 212 555 1234',
-          },
-          // billing_address_id: 'addr_UkLWZg9DAJ',
-
-          // Optional. Invalid codes are non-fatal — the order is created either way.
-          coupon_code: 'WELCOME10',
-        })
-      JS
+      admin_sdk_example 'orders/create'
 
       description <<~DESC
         Creates a new draft order in one shot. Customer, items, addresses, currency,
@@ -244,11 +174,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Returns full order details including admin-only fields.'
       admin_scope :read, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.get('or_UkLWZg9DAJ', {
-          expand: ['items', 'fulfillments', 'payments', 'customer'],
-        })
-      JS
+      admin_sdk_example 'orders/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -287,12 +213,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Updates an order. Supports updating email, addresses, special instructions, and line items.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.update('or_UkLWZg9DAJ', {
-          email: 'updated@example.com',
-          internal_note: 'VIP — gift wrap on next order',
-        })
-      JS
+      admin_sdk_example 'orders/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -368,9 +289,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Deletes a draft order. Completed orders cannot be deleted.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        await client.orders.delete('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'orders/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -399,11 +318,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       DESC
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.complete('or_UkLWZg9DAJ', {
-          notify_customer: true,
-        })
-      JS
+      admin_sdk_example 'orders/complete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -447,9 +362,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Cancels a completed order.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.cancel('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'orders/cancel'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -475,9 +388,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Approves an order (e.g., for fraud review).'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.approve('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'orders/approve'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -506,9 +417,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Resumes a previously canceled order.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const order = await client.orders.resume('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'orders/resume'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -538,9 +447,7 @@ RSpec.describe 'Admin Orders API', type: :request, swagger_doc: 'api-reference/a
       description 'Publishes the order.completed event to trigger confirmation email delivery.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        await client.orders.resendConfirmation('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'orders/resend-confirmation'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

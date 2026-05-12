@@ -16,14 +16,7 @@ RSpec.describe 'Admin Products API', type: :request, swagger_doc: 'api-reference
       description 'Returns a paginated list of products for the current store.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const { data: products } = await client.products.list({
-          name_cont: 'shirt',
-          status_eq: 'active',
-          sort: '-created_at',
-          limit: 25,
-        })
-      JS
+      admin_sdk_example 'products/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -76,41 +69,7 @@ RSpec.describe 'Admin Products API', type: :request, swagger_doc: 'api-reference
       DESC
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const product = await client.products.create({
-          name: 'Premium T-Shirt',
-          price: 29.99,
-          description: 'Soft, organic cotton.',
-          status: 'active',
-          variants: [
-            {
-              sku: 'TSHIRT-S-NAVY',
-              options: [
-                { name: 'size', value: 'Small' },
-                { name: 'color', value: 'navy' },
-              ],
-              prices: [
-                { currency: 'USD', amount: 29.99 },
-                { currency: 'EUR', amount: 27.99 },
-              ],
-              stock_items: [
-                { stock_location_id: 'sloc_UkLWZg9DAJ', count_on_hand: 50 },
-              ],
-            },
-            {
-              sku: 'TSHIRT-M-NAVY',
-              options: [
-                { name: 'size', value: 'Medium' },
-                { name: 'color', value: 'navy' },
-              ],
-              prices: [{ currency: 'USD', amount: 29.99 }],
-              stock_items: [
-                { stock_location_id: 'sloc_UkLWZg9DAJ', count_on_hand: 30 },
-              ],
-            },
-          ],
-        })
-      JS
+      admin_sdk_example 'products/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -210,11 +169,7 @@ RSpec.describe 'Admin Products API', type: :request, swagger_doc: 'api-reference
       description 'Returns a single product by ID.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const product = await client.products.get('prod_86Rf07xd4z', {
-          expand: ['variants', 'option_types'],
-        })
-      JS
+      admin_sdk_example 'products/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -255,13 +210,7 @@ RSpec.describe 'Admin Products API', type: :request, swagger_doc: 'api-reference
       description 'Updates a product. Only provided fields are updated.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const product = await client.products.update('prod_86Rf07xd4z', {
-          name: 'Updated Name',
-          status: 'active',
-          tags: ['eco', 'sale'],
-        })
-      JS
+      admin_sdk_example 'products/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -360,9 +309,7 @@ RSpec.describe 'Admin Products API', type: :request, swagger_doc: 'api-reference
       description 'Soft-deletes a product.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        await client.products.delete('prod_86Rf07xd4z')
-      JS
+      admin_sdk_example 'products/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

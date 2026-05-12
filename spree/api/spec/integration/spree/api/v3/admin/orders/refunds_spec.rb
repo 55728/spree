@@ -20,9 +20,7 @@ RSpec.describe 'Admin Order Refunds API', type: :request, swagger_doc: 'api-refe
       description 'Returns all refunds for an order.'
       admin_scope :read, :refunds
 
-      admin_sdk_example <<~JS
-        const { data: refunds } = await client.orders.refunds.list('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-refunds/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -52,13 +50,7 @@ RSpec.describe 'Admin Order Refunds API', type: :request, swagger_doc: 'api-refe
       description 'Creates a refund for a payment on the order. The refund is automatically processed via the payment gateway.'
       admin_scope :write, :refunds
 
-      admin_sdk_example <<~JS
-        const refund = await client.orders.refunds.create('or_UkLWZg9DAJ', {
-          payment_id: 'pay_UkLWZg9DAJ',
-          amount: 5.00,
-          refund_reason_id: 'refrsn_UkLWZg9DAJ',
-        })
-      JS
+      admin_sdk_example 'order-refunds/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

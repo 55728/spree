@@ -14,8 +14,9 @@ module Spree
           [category_ids: []]
         end
 
-        # API key is `category` (model is still `Taxon` pre-table-rename).
-        def key
+        # Wire-format shorthand is `category` (the model is still `Taxon`
+        # pre-6.0 rename). `key` (instance) cascades through `api_type`.
+        def self.api_type
           'category'
         end
 
@@ -36,7 +37,7 @@ module Spree
         # Preferences
         #
         MATCH_POLICIES = %w(any all)
-        preference :match_policy, default: MATCH_POLICIES.first
+        preference :match_policy, :string, default: MATCH_POLICIES.first
 
         #
         # Attributes

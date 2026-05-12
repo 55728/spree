@@ -22,9 +22,7 @@ RSpec.describe 'Admin Store Credit Categories API', type: :request, swagger_doc:
       DESC
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: categories } = await client.storeCreditCategories.list()
-      JS
+      admin_sdk_example 'store-credit-categories/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -71,9 +69,7 @@ RSpec.describe 'Admin Store Credit Categories API', type: :request, swagger_doc:
       description 'Returns a single store credit category by prefixed ID.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const category = await client.storeCreditCategories.get('sccat_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'store-credit-categories/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

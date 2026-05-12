@@ -38,25 +38,22 @@ module Spree
       type == 'Spree::Promotion::Actions::FreeShipping'
     end
 
-    # Returns the human name of the promotion action
-    #
-    # @return [String] eg. Free Shipping
-    def human_name
-      Spree.t("promotion_action_types.#{key}.name")
+    def self.human_name
+      Spree.t("promotion_action_types.#{api_type}.name", default: api_type.titleize)
     end
 
-    # Returns the human description of the promotion action
-    #
-    # @return [String]
-    def human_description
-      Spree.t("promotion_action_types.#{key}.description")
+    def self.human_description
+      Spree.t("promotion_action_types.#{api_type}.description", default: '')
     end
+
+    def human_name = self.class.human_name
+    def human_description = self.class.human_description
 
     # Returns the key of the promotion action
     #
     # @return [String] eg. free_shipping
     def key
-      type.demodulize.underscore
+      self.class.api_type
     end
 
     protected

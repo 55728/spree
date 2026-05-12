@@ -122,6 +122,7 @@ import type {
   PaymentMethodCreateParams,
   PaymentMethodType,
   PaymentMethodUpdateParams,
+  ProductCreateParams,
   ProductUpdateParams,
   PromotionActionCalculator,
   PromotionActionCreateParams,
@@ -444,6 +445,9 @@ export class AdminClient {
         ...options,
         params: getParams(params),
       }),
+
+    create: (params: ProductCreateParams, options?: RequestOptions): Promise<Product> =>
+      this.request<Product>('POST', '/products', { ...options, body: params }),
 
     update: (id: string, params: ProductUpdateParams, options?: RequestOptions): Promise<Product> =>
       this.request<Product>('PATCH', `/products/${id}`, { ...options, body: params }),

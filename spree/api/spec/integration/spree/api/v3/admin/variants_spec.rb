@@ -17,11 +17,7 @@ RSpec.describe 'Admin Variants API', type: :request, swagger_doc: 'api-reference
       description 'Returns a paginated list of variants for a product, including the master variant.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const { data: variants } = await client.products.variants.list('prod_86Rf07xd4z', {
-          expand: ['prices', 'stock_items'],
-        })
-      JS
+      admin_sdk_example 'variants/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -58,22 +54,7 @@ RSpec.describe 'Admin Variants API', type: :request, swagger_doc: 'api-reference
       DESC
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const variant = await client.products.variants.create('prod_86Rf07xd4z', {
-          sku: 'TSHIRT-L-NAVY',
-          options: [
-            { name: 'size', value: 'Large' },
-            { name: 'color', value: 'navy' },
-          ],
-          prices: [
-            { currency: 'USD', amount: 29.99, compare_at_amount: 34.99 },
-            { currency: 'EUR', amount: 27.99 },
-          ],
-          stock_items: [
-            { stock_location_id: 'sloc_UkLWZg9DAJ', count_on_hand: 25 },
-          ],
-        })
-      JS
+      admin_sdk_example 'variants/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -169,11 +150,7 @@ RSpec.describe 'Admin Variants API', type: :request, swagger_doc: 'api-reference
       description 'Returns a single variant by ID.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const variant = await client.products.variants.get('prod_86Rf07xd4z', 'variant_k5nR8xLq', {
-          expand: ['prices', 'stock_items'],
-        })
-      JS
+      admin_sdk_example 'variants/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -215,14 +192,7 @@ RSpec.describe 'Admin Variants API', type: :request, swagger_doc: 'api-reference
       description 'Updates a variant. Only provided fields are updated.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const variant = await client.products.variants.update('prod_86Rf07xd4z', 'variant_k5nR8xLq', {
-          sku: 'UPDATED-SKU',
-          stock_items: [
-            { stock_location_id: 'sloc_UkLWZg9DAJ', count_on_hand: 75 },
-          ],
-        })
-      JS
+      admin_sdk_example 'variants/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -303,9 +273,7 @@ RSpec.describe 'Admin Variants API', type: :request, swagger_doc: 'api-reference
       description 'Soft-deletes a variant.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        await client.products.variants.delete('prod_86Rf07xd4z', 'variant_k5nR8xLq')
-      JS
+      admin_sdk_example 'variants/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

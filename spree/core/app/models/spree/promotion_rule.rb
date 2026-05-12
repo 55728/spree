@@ -65,25 +65,22 @@ module Spree
       @eligibility_errors ||= ActiveModel::Errors.new(self)
     end
 
-    # Returns the human name of the promotion rule
-    #
-    # @return [String] eg. Currency
-    def human_name
-      Spree.t("promotion_rule_types.#{key}.name")
+    def self.human_name
+      Spree.t("promotion_rule_types.#{api_type}.name", default: api_type.titleize)
     end
 
-    # Returns the human description of the promotion rule
-    #
-    # @return [String]
-    def human_description
-      Spree.t("promotion_rule_types.#{key}.description")
+    def self.human_description
+      Spree.t("promotion_rule_types.#{api_type}.description", default: '')
     end
+
+    def human_name = self.class.human_name
+    def human_description = self.class.human_description
 
     # Returns the key of the promotion rule
     #
     # @return [String] eg. currency
     def key
-      type.demodulize.underscore
+      self.class.api_type
     end
 
     private

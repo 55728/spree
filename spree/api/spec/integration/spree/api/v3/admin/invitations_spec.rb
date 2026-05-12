@@ -19,9 +19,7 @@ RSpec.describe 'Admin Invitations API', type: :request, swagger_doc: 'api-refere
       description 'Returns invitations for the current store, including pending and accepted.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: invitations } = await client.invitations.list()
-      JS
+      admin_sdk_example 'invitations/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -46,12 +44,7 @@ RSpec.describe 'Admin Invitations API', type: :request, swagger_doc: 'api-refere
                   'on accept, a `RoleUser` is created via the invitation\'s `after_accept` callback.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const invitation = await client.invitations.create({
-          email: 'ada@example.com',
-          role_id: 'role_xxx'
-        })
-      JS
+      admin_sdk_example 'invitations/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -86,9 +79,7 @@ RSpec.describe 'Admin Invitations API', type: :request, swagger_doc: 'api-refere
       security [api_key: [], bearer_auth: []]
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        await client.invitations.delete('inv_xxx')
-      JS
+      admin_sdk_example 'invitations/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -112,9 +103,7 @@ RSpec.describe 'Admin Invitations API', type: :request, swagger_doc: 'api-refere
       description 'Issues a fresh token and dispatches the invitation email again.'
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const invitation = await client.invitations.resend('inv_xxx')
-      JS
+      admin_sdk_example 'invitations/resend'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

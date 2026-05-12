@@ -16,9 +16,7 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       description 'Returns the store\'s configured payment methods. Use `source_required: true` to know which methods need a saved source.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: paymentMethods } = await client.paymentMethods.list()
-      JS
+      admin_sdk_example 'payment-methods/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -46,9 +44,7 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       description 'Returns the registered Spree::PaymentMethod subclasses that can be used to create new payment methods. Useful for populating a "Provider" dropdown in admin UIs.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: types } = await client.paymentMethods.types()
-      JS
+      admin_sdk_example 'payment-methods/types'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -69,9 +65,9 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
           expect(data).to be_an(Array)
           expect(data).to all(include('type', 'label'))
           # StoreCredit was just installed → must be filtered out.
-          expect(data.map { |t| t['type'] }).not_to include('Spree::PaymentMethod::StoreCredit')
+          expect(data.map { |t| t['type'] }).not_to include('store_credit')
           # Bogus is registered but not installed → must show up.
-          expect(data.map { |t| t['type'] }).to include('Spree::Gateway::Bogus')
+          expect(data.map { |t| t['type'] }).to include('bogus')
         end
       end
     end
@@ -87,9 +83,7 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       description 'Returns a payment method by ID.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const paymentMethod = await client.paymentMethods.get('pm_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'payment-methods/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

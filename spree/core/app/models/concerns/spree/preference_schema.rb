@@ -39,13 +39,22 @@ module Spree
         []
       end
 
+      # Resolve a wire-format shorthand back to its registered subclass.
+      # Returns nil for unknown shorthands. Lookup is registry-driven so
+      # removed/foreign subclasses can't be smuggled in.
+      def find_by_api_type(shorthand)
+        return nil if shorthand.blank?
+
+        registered_subclasses.find { |klass| klass.api_type == shorthand.to_s }
+      end
+
       # Returns a `[{ type:, label:, description:, preference_schema: }]`
       # array for every concrete subclass in `subclasses`. Sorted by label
       # for stable output.
       def subclasses_with_preference_schema
         registered_subclasses.map do |klass|
           {
-            type: klass.to_s,
+            type: klass.api_type,
             label: subclass_label(klass),
             description: klass.respond_to?(:description) ? klass.description : nil,
             preference_schema: klass.respond_to?(:preference_schema) ? klass.preference_schema : []
@@ -69,6 +78,7 @@ module Spree
       # module, with a leading `Spree` namespace stripped.
       def subclass_label(klass)
         return klass.display_name if klass.respond_to?(:display_name) && klass.display_name.present?
+        return klass.human_name if klass.respond_to?(:human_name) && klass.human_name.present?
 
         leaf = klass.to_s.demodulize
         return leaf.titleize unless leaf == 'Gateway'

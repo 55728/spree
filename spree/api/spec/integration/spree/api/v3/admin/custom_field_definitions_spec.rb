@@ -21,11 +21,7 @@ RSpec.describe 'Admin Custom Field Definitions API', type: :request, swagger_doc
       description 'Returns all defined custom fields. Filter by `?q[resource_type_eq]=Spree::Product` to narrow to one parent type.'
       admin_scope :read, :custom_field_definitions
 
-      admin_sdk_example <<~JS
-        const { data: definitions } = await client.customFieldDefinitions.list({
-          q: { resource_type_eq: 'Spree::Product' },
-        })
-      JS
+      admin_sdk_example 'custom-field-definitions/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -57,16 +53,7 @@ RSpec.describe 'Admin Custom Field Definitions API', type: :request, swagger_doc
       security [api_key: [], bearer_auth: []]
       admin_scope :write, :custom_field_definitions
 
-      admin_sdk_example <<~JS
-        const definition = await client.customFieldDefinitions.create({
-          namespace: 'specs',
-          key: 'origin',
-          label: 'Country of Origin',
-          field_type: 'short_text',
-          resource_type: 'Spree::Product',
-          storefront_visible: true,
-        })
-      JS
+      admin_sdk_example 'custom-field-definitions/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

@@ -13,8 +13,8 @@ import { actionFormSlot, ruleFormSlot } from './types'
  * side effects from the promotion detail route — extensions can call
  * `removeSlot(name, 'builtin')` to replace any of these with their own.
  *
- * Slot keys follow `promotion.rule_form.<rule.key>` and
- * `promotion.action_form.<action.key>`. Rules/actions whose key isn't
+ * Slot keys follow `promotion.rule_form.<rule.type>` and
+ * `promotion.action_form.<action.type>`. Rules/actions whose type isn't
  * registered fall through to the generic `<DefaultRuleEditor>` /
  * `<DefaultActionEditor>` (preferences-only) in the parent route.
  */

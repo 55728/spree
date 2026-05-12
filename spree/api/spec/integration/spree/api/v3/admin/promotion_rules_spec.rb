@@ -18,9 +18,7 @@ RSpec.describe 'Admin Promotion Rules API', type: :request, swagger_doc: 'api-re
       security [api_key: [], bearer_auth: []]
       admin_scope :read, :promotions
 
-      admin_sdk_example <<~JS
-        const { data: rules } = await client.promotions.rules.list('promo_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'promotion-rules/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -35,7 +33,7 @@ RSpec.describe 'Admin Promotion Rules API', type: :request, swagger_doc: 'api-re
         run_test! do |response|
           data = JSON.parse(response.body)['data']
           expect(data.size).to eq(1)
-          expect(data.first['type']).to eq('Spree::Promotion::Rules::Currency')
+          expect(data.first['type']).to eq('currency')
           expect(data.first['preferences']).to include('currency' => 'USD')
         end
       end
@@ -46,22 +44,17 @@ RSpec.describe 'Admin Promotion Rules API', type: :request, swagger_doc: 'api-re
       produces 'application/json'
       consumes 'application/json'
       security [api_key: [], bearer_auth: []]
-      description 'Adds a new rule to a promotion. The `type` is the fully-qualified subclass; pick from `GET /promotion_rules/types`. `preferences` round-trips through the typed setters declared on the subclass.'
+      description 'Adds a new rule to a promotion. The `type` is the wire shorthand from `GET /promotion_rules/types` (e.g. `currency`, `item_total`, `product`). Fully-qualified Ruby class names are also accepted for backward compatibility.'
       admin_scope :write, :promotions
 
-      admin_sdk_example <<~JS
-        const rule = await client.promotions.rules.create('promo_UkLWZg9DAJ', {
-          type: 'Spree::Promotion::Rules::Currency',
-          preferences: { currency: 'EUR' }
-        })
-      JS
+      admin_sdk_example 'promotion-rules/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
       parameter name: :body, in: :body, schema: {
         type: :object,
         properties: {
-          type: { type: :string },
+          type: { type: :string, example: 'currency' },
           preferences: { type: :object, additionalProperties: true }
         },
         required: ['type']
@@ -69,18 +62,18 @@ RSpec.describe 'Admin Promotion Rules API', type: :request, swagger_doc: 'api-re
 
       response '201', 'rule created with preferences' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
-        let(:body) { { type: 'Spree::Promotion::Rules::Currency', preferences: { currency: 'EUR' } } }
+        let(:body) { { type: 'currency', preferences: { currency: 'EUR' } } }
 
         run_test! do |response|
           data = JSON.parse(response.body)
-          expect(data['type']).to eq('Spree::Promotion::Rules::Currency')
+          expect(data['type']).to eq('currency')
           expect(data['preferences']).to include('currency' => 'EUR')
         end
       end
 
       response '422', 'unknown rule type' do
         let(:'x-spree-api-key') { secret_api_key.plaintext_token }
-        let(:body) { { type: 'Bogus::Rule' } }
+        let(:body) { { type: 'bogus_rule' } }
 
         run_test! do |response|
           expect(JSON.parse(response.body)['error']['code']).to eq('unknown_promotion_rule_type')
