@@ -18,15 +18,22 @@ module Spree
         calculator.class.to_s if calculator
       end
 
-      # Look up a calculator by its wire shorthand (`'flat_rate'`) against
-      # the calculators registered for this parent. Scoping to the
-      # registered set ensures a `CreateAdjustment` action can't be
-      # assigned a shipping-only calculator just by knowing its shorthand.
+      # Accepts a fully-qualified class name (`'Spree::Calculator::FlatRate'`)
+      # or the public API shorthand (`'flat_rate'`). Shorthand is resolved
+      # against this parent's registered calculators so a CreateAdjustment
+      # can't be assigned a shipping-only calculator just by knowing its
+      # name.
       def calculator_type=(calculator_type)
         return if calculator_type.blank?
 
-        registry = self.class.respond_to?(:calculators) ? self.class.calculators : []
-        klass = registry.find { |k| k.api_type == calculator_type.to_s }
+        str = calculator_type.to_s
+        klass =
+          if str.include?('::')
+            str.safe_constantize
+          else
+            registry = self.class.respond_to?(:calculators) ? self.class.calculators : []
+            registry.find { |k| k.api_type == str }
+          end
         self.calculator = klass.new if klass && !calculator.instance_of?(klass)
       end
 
