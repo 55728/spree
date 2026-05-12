@@ -906,4 +906,200 @@ describe Spree::Promotion, type: :model do
       end
     end
   end
+
+  describe '#rules=' do
+    let(:promotion) { create(:promotion) }
+    let(:product) { create(:product) }
+    let(:other_product) { create(:product) }
+    let(:taxon) { create(:taxon) }
+
+    it 'builds a rule from a {type, preferences} hash' do
+      promotion.rules = [{ type: 'item_total', preferences: { amount_min: 50 } }]
+      promotion.reload
+
+      expect(promotion.rules.size).to eq(1)
+      expect(promotion.rules.first).to be_a(Spree::Promotion::Rules::ItemTotal)
+      expect(promotion.rules.first.preferred_amount_min).to eq(50)
+    end
+
+    it 'updates an existing rule when matched by id' do
+      existing = promotion.rules.create!(type: 'Spree::Promotion::Rules::ItemTotal', preferences: { amount_min: 10 })
+
+      promotion.rules = [{ id: existing.id, type: 'item_total', preferences: { amount_min: 99 } }]
+      promotion.reload
+
+      expect(promotion.rules.size).to eq(1)
+      expect(promotion.rules.first.id).to eq(existing.id)
+      expect(promotion.rules.first.preferred_amount_min).to eq(99)
+    end
+
+    it 'destroys rules omitted from the payload' do
+      kept = promotion.rules.create!(type: 'Spree::Promotion::Rules::ItemTotal', preferences: { amount_min: 10 })
+      removed = promotion.rules.create!(type: 'Spree::Promotion::Rules::FirstOrder')
+
+      promotion.rules = [{ id: kept.id, type: 'item_total' }]
+      promotion.reload
+
+      expect(promotion.rules.pluck(:id)).to eq([kept.id])
+      expect(Spree::PromotionRule.find_by(id: removed.id)).to be_nil
+    end
+
+    it 'destroys all rules when given an empty array' do
+      promotion.rules.create!(type: 'Spree::Promotion::Rules::ItemTotal')
+
+      promotion.rules = []
+      promotion.reload
+
+      expect(promotion.rules).to be_empty
+    end
+
+    # Regression: assigning `product_ids` on a brand-new rule used to fail
+    # because Rails autosaved the through-join rows before the parent
+    # rule had an id, tripping `presence: true` on the join model.
+    it 'builds a Product rule with product_ids in a single assignment' do
+      promotion.rules = [{
+        type: 'product',
+        preferences: { match_policy: 'any' },
+        product_ids: [product.id, other_product.id]
+      }]
+      promotion.reload
+
+      rule = promotion.rules.first
+      expect(rule).to be_a(Spree::Promotion::Rules::Product)
+      expect(rule.products).to contain_exactly(product, other_product)
+      expect(rule.preferred_match_policy).to eq('any')
+    end
+
+    it 'replaces product_ids on an existing Product rule' do
+      rule = promotion.rules.create!(type: 'Spree::Promotion::Rules::Product')
+      rule.products = [product]
+
+      promotion.rules = [{ id: rule.id, type: 'product', product_ids: [other_product.id] }]
+      promotion.reload
+
+      expect(promotion.rules.first.products).to contain_exactly(other_product)
+    end
+
+    it 'builds a Taxon rule with taxon_ids' do
+      promotion.rules = [{ type: 'category', taxon_ids: [taxon.id] }]
+      promotion.reload
+
+      rule = promotion.rules.first
+      expect(rule).to be_a(Spree::Promotion::Rules::Taxon)
+      expect(rule.taxons).to contain_exactly(taxon)
+    end
+
+    # Regression: `category_ids=` on Rules::Taxon is a custom setter (not a
+    # bare through-association writer), so `*_ids` deferral has to handle
+    # any key ending in `_ids` on a new record — not just keys that match
+    # an association name.
+    it 'builds a Taxon rule on a new promotion using category_ids (custom setter)' do
+      fresh = build(:promotion)
+      fresh.rules = [{ type: 'category', category_ids: [taxon.id] }]
+      fresh.save!
+
+      rule = fresh.reload.rules.first
+      expect(rule).to be_a(Spree::Promotion::Rules::Taxon)
+      expect(rule.taxons).to contain_exactly(taxon)
+    end
+
+    it 'defers application until after_save on a new promotion record' do
+      promotion = build(:promotion)
+      promotion.rules = [{ type: 'item_total', preferences: { amount_min: 25 } }]
+
+      expect(promotion).to be_pending_rules_or_actions
+      expect(promotion.rules).to be_empty
+
+      promotion.save!
+      promotion.reload
+
+      expect(promotion.rules.size).to eq(1)
+      expect(promotion.rules.first.preferred_amount_min).to eq(25)
+    end
+
+    it 'ignores rows with an unknown type' do
+      promotion.rules = [{ type: 'NotARealRule' }]
+      promotion.reload
+
+      expect(promotion.rules).to be_empty
+    end
+
+    it 'falls through to AR when assigned PromotionRule instances' do
+      rule = Spree::Promotion::Rules::FirstOrder.new
+      promotion.rules = [rule]
+
+      expect(promotion.rules).to include(rule)
+    end
+  end
+
+  describe '#actions=' do
+    let(:promotion) { create(:promotion) }
+
+    it 'builds a CreateAdjustment action with a calculator hash' do
+      promotion.actions = [{
+        type: 'create_adjustment',
+        calculator: {
+          type: 'flat_rate',
+          preferences: { amount: 7.5, currency: 'USD' }
+        }
+      }]
+      promotion.reload
+
+      action = promotion.actions.first
+      expect(action).to be_a(Spree::Promotion::Actions::CreateAdjustment)
+      expect(action.calculator).to be_a(Spree::Calculator::FlatRate)
+      expect(action.calculator.preferred_amount).to eq(7.5)
+      expect(action.calculator.preferred_currency).to eq('USD')
+    end
+
+    it 'updates the calculator type on an existing action' do
+      action = promotion.actions.create!(
+        type: 'Spree::Promotion::Actions::CreateAdjustment',
+        calculator: Spree::Calculator::FlatRate.new(preferred_amount: 5)
+      )
+
+      promotion.actions = [{
+        id: action.id,
+        type: 'create_adjustment',
+        calculator: { type: 'flat_percent_item_total', preferences: { flat_percent: 15 } }
+      }]
+      promotion.reload
+
+      reloaded = promotion.actions.first
+      expect(reloaded.id).to eq(action.id)
+      expect(reloaded.calculator).to be_a(Spree::Calculator::FlatPercentItemTotal)
+      expect(reloaded.calculator.preferred_flat_percent).to eq(15)
+    end
+
+    it 'builds a FreeShipping action without a calculator' do
+      promotion.actions = [{ type: 'free_shipping' }]
+      promotion.reload
+
+      expect(promotion.actions.first).to be_a(Spree::Promotion::Actions::FreeShipping)
+    end
+
+    it 'destroys actions omitted from the payload' do
+      kept = promotion.actions.create!(type: 'Spree::Promotion::Actions::FreeShipping')
+      removed = promotion.actions.create!(type: 'Spree::Promotion::Actions::CreateAdjustment')
+
+      promotion.actions = [{ id: kept.id, type: 'free_shipping' }]
+      promotion.reload
+
+      expect(promotion.actions.pluck(:id)).to eq([kept.id])
+      expect(Spree::PromotionAction.find_by(id: removed.id)).to be_nil
+    end
+
+    it 'defers application until after_save on a new promotion record' do
+      promotion = build(:promotion)
+      promotion.actions = [{ type: 'free_shipping' }]
+
+      expect(promotion).to be_pending_rules_or_actions
+      expect(promotion.actions).to be_empty
+
+      promotion.save!
+      promotion.reload
+
+      expect(promotion.actions.size).to eq(1)
+    end
+  end
 end

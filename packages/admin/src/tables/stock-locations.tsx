@@ -1,6 +1,6 @@
 import type { StockLocation } from '@spree/admin-sdk'
 import { PencilIcon, WarehouseIcon } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ActiveBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { defineTable } from '@/lib/table-registry'
 
@@ -25,7 +25,7 @@ defineTable<StockLocation>('stock-locations', {
         <button
           type="button"
           data-stock-location-id={sl.id}
-          className="flex flex-col items-start text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          className="flex flex-col items-start text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded cursor-pointer w-full"
         >
           <span className="font-medium">{sl.name}</span>
           {sl.admin_name && (
@@ -68,8 +68,9 @@ defineTable<StockLocation>('stock-locations', {
       filterable: true,
       default: true,
       filterType: 'boolean',
-      render: (sl) =>
-        sl.pickup_enabled ? <Badge variant="secondary">Enabled</Badge> : <span>—</span>,
+      render: (sl) => (
+        <ActiveBadge active={sl.pickup_enabled} activeLabel="Enabled" dashWhenInactive />
+      ),
     },
     {
       key: 'active',
@@ -78,8 +79,9 @@ defineTable<StockLocation>('stock-locations', {
       filterable: true,
       default: true,
       filterType: 'boolean',
-      render: (sl) =>
-        sl.active ? <Badge variant="secondary">Active</Badge> : <Badge>Inactive</Badge>,
+      render: (sl) => (
+        <ActiveBadge active={sl.active} activeLabel="Active" inactiveLabel="Inactive" />
+      ),
     },
     {
       key: 'default',
@@ -87,7 +89,7 @@ defineTable<StockLocation>('stock-locations', {
       default: true,
       filterable: true,
       filterType: 'boolean',
-      render: (sl) => (sl.default ? <Badge>Default</Badge> : '—'),
+      render: (sl) => <ActiveBadge active={sl.default} activeLabel="Default" dashWhenInactive />,
     },
     {
       key: 'actions',

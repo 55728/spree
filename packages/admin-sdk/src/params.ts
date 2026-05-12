@@ -70,6 +70,7 @@ export interface AddressInputParams {
   country_iso?: string
   state_abbr?: string
   phone?: string
+  company?: string
 }
 
 export interface OrderCreateParams {
@@ -79,6 +80,15 @@ export interface OrderCreateParams {
   use_customer_default_address?: boolean
   currency?: string
   market_id?: string
+  /** Channel ID. Defaults to the store primary channel when omitted. */
+  channel_id?: string
+  /**
+   * Stock Location ID to prefer for fulfillment. Order Routing's built-in
+   * `PreferredLocation` rule reads this and ranks the location first;
+   * routing falls back to the next rule when the preferred location can't
+   * cover the cart.
+   */
+  preferred_stock_location_id?: string
   locale?: string
   customer_note?: string
   internal_note?: string
@@ -92,6 +102,7 @@ export interface OrderCreateParams {
     quantity: number
     metadata?: Record<string, unknown>
   }>
+  /** Optional. Applied non-fatally; invalid codes do not block creation. */
   coupon_code?: string
 }
 
@@ -221,6 +232,8 @@ export interface MediaUpdateParams {
 
 export interface ProductCreateParams {
   name: string
+  /** Default price in the store's primary currency. */
+  price?: number
   description?: string
   slug?: string
   status?: 'draft' | 'active' | 'archived'
@@ -441,6 +454,102 @@ export interface StockLocationUpdateParams {
   pickup_instructions?: string | null
 }
 
+export interface StockItemUpdateParams {
+  count_on_hand?: number
+  backorderable?: boolean
+  metadata?: Record<string, unknown>
+}
+
+export interface StockTransferCreateParams {
+  /** Omit for a vendor receive (external stock arriving at the destination). */
+  source_location_id?: string
+  destination_location_id: string
+  reference?: string
+  variants: Array<{ variant_id: string; quantity: number }>
+}
+
+export interface TaxCategoryCreateParams {
+  name: string
+  tax_code?: string | null
+  description?: string | null
+  is_default?: boolean
+}
+
+export interface TaxCategoryUpdateParams {
+  name?: string
+  tax_code?: string | null
+  description?: string | null
+  is_default?: boolean
+}
+
+/**
+ * One entry in `preference_schema`, describing a single tunable knob on
+ * a STI subclass (payment provider, promotion action, promotion rule).
+ *
+ * The `type` mirrors Spree's preference type system — `string`, `text`,
+ * `integer`, `decimal`, `boolean`, `array`, `password` — so admin UIs
+ * can switch on it to render the right input widget.
+ */
+export interface PreferenceField {
+  key: string
+  type: string
+  default: unknown
+}
+
+/**
+ * The shape returned by `/<resource>/types` endpoints — one entry per
+ * registered subclass with its preference schema. Used to build "Add
+ * provider / action / rule" pickers and render generic preferences forms.
+ */
+export interface ResourceTypeDefinition {
+  type: string
+  label: string
+  description: string | null
+  preference_schema: PreferenceField[]
+}
+
+/**
+ * Where the merchant exposes a payment method — `front_end` shows it on the
+ * storefront, `back_end` only in the admin (e.g. manual check capture),
+ * `both` everywhere.
+ */
+export type PaymentMethodDisplayOn = 'both' | 'front_end' | 'back_end'
+
+export interface PaymentMethodCreateParams {
+  /** Fully-qualified STI subclass name, e.g. 'Spree::PaymentMethod::Check'. */
+  type: string
+  name: string
+  description?: string | null
+  active?: boolean
+  display_on?: PaymentMethodDisplayOn
+  auto_capture?: boolean | null
+  position?: number
+  metadata?: Record<string, unknown>
+  /** Provider-specific configuration; values are coerced via the typed setters. */
+  preferences?: Record<string, unknown>
+}
+
+export interface PaymentMethodUpdateParams {
+  name?: string
+  description?: string | null
+  active?: boolean
+  display_on?: PaymentMethodDisplayOn
+  auto_capture?: boolean | null
+  position?: number
+  metadata?: Record<string, unknown>
+  preferences?: Record<string, unknown>
+}
+
+/**
+ * One entry returned by `GET /payment_methods/types` — the registered list
+ * of available STI subclasses, with their per-provider preference schemas
+ * for the universal configuration form.
+ *
+ * @deprecated Prefer `ResourceTypeDefinition`; this alias remains for
+ * naming-symmetry with the controller. They are structurally identical.
+ */
+export type PaymentMethodType = ResourceTypeDefinition
+
 /**
  * Built-in `Spree::Export` subclasses. The server validates `type` against
  * the configured allowlist (`Spree::Export.available_types`); a plugin can
@@ -488,3 +597,160 @@ export type CustomFieldOwnerType =
   | 'Spree::Category'
   | 'Spree::OptionType'
   | (string & {})
+
+export type PromotionKind = 'coupon_code' | 'automatic'
+
+export interface PromotionCreateParams {
+  name: string
+  description?: string | null
+  starts_at?: string | null
+  expires_at?: string | null
+  /** Required for single-code coupon promotions. Ignored when `multi_codes` is true. */
+  code?: string | null
+  usage_limit?: number | null
+  match_policy?: 'all' | 'any'
+  path?: string | null
+  promotion_category_id?: string | null
+  /** `coupon_code` requires a code (or multi_codes); `automatic` triggers without one. */
+  kind?: PromotionKind
+  /** When true, server auto-generates `number_of_codes` codes prefixed with `code_prefix`. */
+  multi_codes?: boolean
+  number_of_codes?: number | null
+  code_prefix?: string | null
+  metadata?: Record<string, unknown>
+  /** Optional rules to create alongside the promotion. Sent as a desired-set on update. */
+  rules?: PromotionRuleDraft[]
+  /** Optional actions to create alongside the promotion. */
+  actions?: PromotionActionDraft[]
+}
+
+export interface PromotionUpdateParams {
+  name?: string
+  description?: string | null
+  starts_at?: string | null
+  expires_at?: string | null
+  code?: string | null
+  usage_limit?: number | null
+  match_policy?: 'all' | 'any'
+  path?: string | null
+  promotion_category_id?: string | null
+  kind?: PromotionKind
+  multi_codes?: boolean
+  number_of_codes?: number | null
+  code_prefix?: string | null
+  metadata?: Record<string, unknown>
+  /** Replaces the rule set: rows with `id` update, rows without build, missing rows are removed. */
+  rules?: PromotionRuleDraft[]
+  /** Same desired-set semantic as `rules`. */
+  actions?: PromotionActionDraft[]
+}
+
+/**
+ * One entry in a `Promotion#rules`/`#actions` payload. `id` is optional —
+ * supply it on updates to match an existing row, omit for new rows. The
+ * server reconciles to the desired set: anything not in the array is
+ * removed.
+ */
+export interface PromotionRuleDraft {
+  id?: string
+  /**
+   * Wire shorthand for the rule subclass (e.g. `'currency'`, `'item_total'`,
+   * `'product'`, `'category'`). Returned by `GET /promotion_rules/types`.
+   */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For the `product` rule. */
+  product_ids?: string[]
+  /** For the `category` rule. */
+  category_ids?: string[]
+  /** For the `user` rule — customers who qualify for the promotion. */
+  customer_ids?: string[]
+}
+
+export interface PromotionActionDraft {
+  id?: string
+  /**
+   * Wire shorthand for the action subclass (e.g. `'free_shipping'`,
+   * `'create_item_adjustments'`, `'create_adjustment'`). Returned by
+   * `GET /promotion_actions/types`.
+   */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For adjustment actions. */
+  calculator?: PromotionActionCalculatorParams
+  /** For `create_line_items`. */
+  line_items?: PromotionActionLineItemParams[]
+}
+
+/**
+ * Nested calculator payload for adjustment actions. Sent on
+ * `create_adjustment` and `create_item_adjustments`.
+ *
+ * - `type` — wire shorthand for the calculator subclass (e.g. `'flat_rate'`,
+ *   `'flat_percent_item_total'`, `'percent_on_line_item'`); changing the
+ *   type swaps the underlying calculator record.
+ * - `preferences` — per-calculator preference values (`amount`,
+ *   `flat_percent`, `currency`, …). Keys are coerced via the typed
+ *   setters server-side.
+ */
+export interface PromotionActionCalculatorParams {
+  type?: string
+  preferences?: Record<string, unknown>
+}
+
+/**
+ * Nested promotion-action line item — one row in the "give the customer
+ * variant X with quantity N" payload for `CreateLineItems`. The submitted
+ * list is the *desired* set: variants not present are removed, variants
+ * present are upserted by `(promotion_action_id, variant_id)`.
+ */
+export interface PromotionActionLineItemParams {
+  variant_id: string
+  quantity: number
+}
+
+/**
+ * One entry returned by `GET /promotion_actions/calculators?type=…` — a
+ * calculator subclass available for the given action, with the preference
+ * fields the SPA renders below the calculator picker.
+ */
+export interface PromotionActionCalculator {
+  type: string
+  label: string
+  preference_schema: PreferenceField[]
+}
+
+export interface PromotionActionCreateParams {
+  /** Wire shorthand for the action subclass (e.g. `'free_shipping'`). */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For adjustment actions — calculator subclass + its preference values. */
+  calculator?: PromotionActionCalculatorParams
+  /** For `CreateLineItems` — desired set of variants + quantities. */
+  line_items?: PromotionActionLineItemParams[]
+}
+
+export interface PromotionActionUpdateParams {
+  preferences?: Record<string, unknown>
+  calculator?: PromotionActionCalculatorParams
+  line_items?: PromotionActionLineItemParams[]
+}
+
+export interface PromotionRuleCreateParams {
+  /** Wire shorthand for the rule subclass (e.g. `'currency'`, `'item_total'`). */
+  type: string
+  preferences?: Record<string, unknown>
+  /** For the `product` rule — prefixed product IDs to associate with this rule. */
+  product_ids?: string[]
+  /** For the `category` rule — prefixed category IDs. */
+  category_ids?: string[]
+  /** For the `user` rule — prefixed customer IDs. */
+  customer_ids?: string[]
+}
+
+export interface PromotionRuleUpdateParams {
+  preferences?: Record<string, unknown>
+  product_ids?: string[]
+  category_ids?: string[]
+  customer_ids?: string[]
+}

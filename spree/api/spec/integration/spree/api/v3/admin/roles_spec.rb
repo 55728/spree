@@ -16,9 +16,7 @@ RSpec.describe 'Admin Roles API', type: :request, swagger_doc: 'api-reference/ad
       description 'Returns the roles available for staff role pickers. Roles are global, not per-store.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: roles } = await client.roles.list()
-      JS
+      admin_sdk_example 'roles/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

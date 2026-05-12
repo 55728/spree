@@ -164,7 +164,7 @@ Spree::Core::Engine.add_routes do
         resources :option_types, concerns: :custom_fieldable
 
         # Tax Categories
-        resources :tax_categories, only: [:index, :show]
+        resources :tax_categories
 
         # Store Credit Categories (read-only — for store credit dropdowns)
         resources :store_credit_categories, only: [:index, :show]
@@ -175,8 +175,41 @@ Spree::Core::Engine.add_routes do
         # Stock Reservations
         resources :stock_reservations, only: [:index, :show]
 
+        # Stock Items (write surface — list/show/update/destroy; creation
+        # happens implicitly when variants meet stock locations).
+        resources :stock_items, only: [:index, :show, :update, :destroy]
+
+        # Stock Transfers (move inventory between locations, or receive
+        # from external vendor when source_location_id is omitted).
+        resources :stock_transfers, only: [:index, :show, :create, :destroy]
+
         # Payment Methods
-        resources :payment_methods, only: [:index, :show]
+        resources :payment_methods do
+          collection do
+            get :types
+          end
+        end
+
+        # Promotions, with nested actions/rules/coupon codes.
+        resources :promotions do
+          resources :promotion_actions, only: [:index, :show, :create, :update, :destroy]
+          resources :promotion_rules, only: [:index, :show, :create, :update, :destroy]
+          resources :coupon_codes, only: [:index, :show]
+        end
+
+        # Subclass discovery for the promotion editor: `/promotion_actions/types`
+        # and `/promotion_rules/types` enumerate registered subclasses with
+        # their preference schemas. Top-level so the SPA can build the
+        # "Add action / Add rule" pickers without a parent promotion.
+        get 'promotion_actions/types', to: 'promotion_actions#types'
+        get 'promotion_rules/types',   to: 'promotion_rules#types'
+
+        # Calculator catalog for actions that include CalculatedAdjustments
+        # (CreateAdjustment, CreateItemAdjustments). Returns the registered
+        # calculator subclasses for the given action type along with each
+        # calculator's preference schema, so the SPA can render the picker
+        # + nested calculator preferences.
+        get 'promotion_actions/calculators', to: 'promotion_actions#calculators'
 
         # Tags (autocomplete for product/order/user tag inputs)
         resources :tags, only: [:index]
@@ -187,6 +220,9 @@ Spree::Core::Engine.add_routes do
           resources :credit_cards, controller: 'customers/credit_cards', only: [:index, :show, :destroy]
           resources :store_credits, controller: 'customers/store_credits'
         end
+
+        # Customer groups (segmentation; used by promotion rules + bulk customer ops)
+        resources :customer_groups
 
         # Variants (top-level, for search/autocomplete across all products)
         resources :variants, only: [:index, :show], concerns: :custom_fieldable

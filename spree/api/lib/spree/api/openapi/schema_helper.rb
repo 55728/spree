@@ -144,6 +144,36 @@ module Spree
                 name: { type: :string, description: 'Role name', example: 'admin' }
               },
               required: %w[id name]
+            },
+            PreferenceField: {
+              type: :object,
+              description: 'A single configurable preference on a payment method, promotion rule/action, or calculator. The frontend uses `type` + `default` to render a sensible input.',
+              properties: {
+                key: { type: :string, example: 'amount_min' },
+                type: { type: :string, example: 'decimal', description: 'string | text | password | integer | decimal | boolean | array | hash' },
+                default: { description: 'Default value (any JSON type), null when there is no default', nullable: true }
+              },
+              required: %w[key type]
+            },
+            PromotionActionCalculator: {
+              type: :object,
+              description: "The action's nested calculator (when the action carries one — null for actions like `free_shipping`)",
+              properties: {
+                type: { type: :string, example: 'flat_rate', description: 'Wire shorthand for the calculator subclass' },
+                label: { type: :string, example: 'Flat Rate' },
+                preferences: { type: :object, additionalProperties: true },
+                preference_schema: { type: :array, items: { '$ref' => '#/components/schemas/PreferenceField' } }
+              },
+              required: %w[type label preferences preference_schema]
+            },
+            PromotionActionLineItem: {
+              type: :object,
+              description: 'One row in a `create_line_items` action — the variant added to the order and how many',
+              properties: {
+                variant_id: { type: :string, example: 'variant_abc123' },
+                quantity: { type: :integer, example: 1 }
+              },
+              required: %w[variant_id quantity]
             }
           }
         end
@@ -189,6 +219,8 @@ module Spree
             patch_cart_schema(schemas)
             patch_fulfillment_schema(schemas)
             patch_admin_user_schema(schemas)
+            patch_promotion_rule_schema(schemas)
+            patch_promotion_action_schema(schemas)
             schemas
           end
         end
@@ -235,6 +267,73 @@ module Spree
               items: { '$ref' => '#/components/schemas/AdminUserRoleAssignment' }
             }
           end
+        end
+
+        # Same Array<{...}> + Array<string> typelize hints that Typelizer
+        # collapses to `object` in OpenAPI. Patch the affected properties to
+        # their correct array shapes.
+        def patch_promotion_rule_schema(schemas)
+          rule = schemas['PromotionRule'] || schemas[:PromotionRule]
+          return unless rule
+
+          patch_id_arrays(rule, %w[product_ids category_ids customer_ids])
+          patch_preference_schema(rule)
+        end
+
+        def patch_promotion_action_schema(schemas)
+          action = schemas['PromotionAction'] || schemas[:PromotionAction]
+          return unless action
+
+          patch_preference_schema(action)
+
+          props = action[:properties]
+          return unless props
+
+          calc_key = props.key?('calculator') ? 'calculator' : :calculator
+          if props[calc_key]
+            props[calc_key] = {
+              allOf: [{ '$ref' => '#/components/schemas/PromotionActionCalculator' }],
+              nullable: true
+            }
+          end
+
+          items_key = props.key?('line_items') ? 'line_items' : :line_items
+          if props[items_key]
+            props[items_key] = {
+              type: :array,
+              items: { '$ref' => '#/components/schemas/PromotionActionLineItem' },
+              nullable: true
+            }
+          end
+        end
+
+        def patch_id_arrays(schema, keys)
+          props = schema[:properties]
+          return unless props
+
+          keys.each do |key|
+            actual = props.key?(key) ? key : key.to_sym
+            next unless props[actual]
+
+            props[actual] = {
+              type: :array,
+              items: { type: :string },
+              nullable: true
+            }
+          end
+        end
+
+        def patch_preference_schema(schema)
+          props = schema[:properties]
+          return unless props
+
+          key = props.key?('preference_schema') ? 'preference_schema' : :preference_schema
+          return unless props[key]
+
+          props[key] = {
+            type: :array,
+            items: { '$ref' => '#/components/schemas/PreferenceField' }
+          }
         end
 
         # Typelizer cannot represent Array<{...}> inline object types in OpenAPI,

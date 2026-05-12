@@ -105,31 +105,34 @@ describe Spree::Promotion::Actions::CreateLineItems, type: :model do
     context 'with existing promotion action line items' do
       before do
         action.save!
-        # Change quantity for existing item
+        # Submit the full desired set — both rows present, shirt's quantity bumped.
         action.promotion_action_line_items_attributes = {
-          '0' => { 'variant_id' => shirt.id, 'quantity' => 3 }
+          '0' => { 'variant_id' => shirt.id, 'quantity' => 3 },
+          '1' => { 'variant_id' => mug.id, 'quantity' => 2 }
         }
       end
 
-      it 'updates existing promotion action line items' do
+      it 'updates existing promotion action line items in place' do
         expect { action.save! }.not_to change(action.promotion_action_line_items, :count)
         expect(action.promotion_action_line_items.find_by(variant_id: shirt.id).quantity).to eq(3)
         expect(action.promotion_action_line_items.find_by(variant_id: mug.id).quantity).to eq(2)
       end
     end
 
-    context 'with items marked for destruction' do
+    context 'with rows omitted from the desired set' do
       before do
         action.save!
+        # Omitting `mug` from the submitted set deletes it; the list is
+        # the desired state, not a diff. Mirrors the API v3 flat payload.
         action.promotion_action_line_items_attributes = {
-          '0' => { 'id' => action.promotion_action_line_items.find_by(variant_id: shirt.id).id, '_destroy' => '1' }
+          '0' => { 'variant_id' => shirt.id, 'quantity' => 1 }
         }
       end
 
-      it 'removes items marked for destruction' do
+      it 'removes the omitted rows' do
         expect { action.save! }.to change(action.promotion_action_line_items, :count).by(-1)
-        expect(action.promotion_action_line_items.find_by(variant_id: shirt.id)).to be_nil
-        expect(action.promotion_action_line_items.find_by(variant_id: mug.id)).to be_present
+        expect(action.promotion_action_line_items.find_by(variant_id: shirt.id)).to be_present
+        expect(action.promotion_action_line_items.find_by(variant_id: mug.id)).to be_nil
       end
     end
   end

@@ -43,6 +43,10 @@ module Spree
             return @collection if @collection.present?
 
             filters = params[:q]&.to_unsafe_h || params[:q] || {}
+            # Decode Stripe-style prefixed IDs in `*_id_in`/`id_eq`/etc. so SPA
+            # filters can pass `prod_…` keys; the search provider expects raw
+            # IDs because it goes straight to Ransack on the underlying scope.
+            filters = decode_prefixed_id_predicates(filters)
             # `q[search]` is the global text-search predicate; pass it through
             # the provider's `query` arg so it invokes `Product.search` rather
             # than being treated as a Ransack predicate (which gets stripped

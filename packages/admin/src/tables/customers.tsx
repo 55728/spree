@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { UsersIcon } from 'lucide-react'
 import { RelativeTime } from '@/components/spree/relative-time'
+import { ActiveBadge } from '@/components/ui/badge'
 import { defineTable } from '@/lib/table-registry'
 
 defineTable('customers', {
@@ -74,7 +75,7 @@ defineTable('customers', {
       filterable: true,
       default: false,
       filterType: 'boolean',
-      render: (c) => (c.accepts_email_marketing ? 'Yes' : 'No'),
+      render: (c) => <ActiveBadge active={c.accepts_email_marketing} />,
     },
     {
       key: 'created_at',

@@ -2,6 +2,8 @@
 # PromotionActions perform the necessary tasks when a promotion is activated by an event and determined to be eligible.
 module Spree
   class PromotionAction < Spree.base_class
+    include Spree::PreferenceSchema
+
     has_prefix_id :pact
 
     acts_as_paranoid
@@ -11,6 +13,15 @@ module Spree
     validates :promotion, :type, presence: true
 
     scope :of_type, ->(t) { where(type: t) }
+
+    # Per-subclass permitted attributes beyond `type` and `preferences`.
+    # Override in STI subclasses that accept nested attributes (e.g.
+    # CreateLineItems needs `promotion_action_line_items_attributes`,
+    # CreateAdjustment needs `calculator_type` + `calculator_attributes`).
+    # The Admin API merges these into its `params.permit(...)` allowlist.
+    def self.additional_permitted_attributes
+      []
+    end
 
     # This method should be overridden in subclass
     # Updates the state of the order or performs some other action depending on the subclass
@@ -27,25 +38,22 @@ module Spree
       type == 'Spree::Promotion::Actions::FreeShipping'
     end
 
-    # Returns the human name of the promotion action
-    #
-    # @return [String] eg. Free Shipping
-    def human_name
-      Spree.t("promotion_action_types.#{key}.name")
+    def self.human_name
+      Spree.t("promotion_action_types.#{api_type}.name", default: api_type.titleize)
     end
 
-    # Returns the human description of the promotion action
-    #
-    # @return [String]
-    def human_description
-      Spree.t("promotion_action_types.#{key}.description")
+    def self.human_description
+      Spree.t("promotion_action_types.#{api_type}.description", default: '')
     end
+
+    def human_name = self.class.human_name
+    def human_description = self.class.human_description
 
     # Returns the key of the promotion action
     #
     # @return [String] eg. free_shipping
     def key
-      type.demodulize.underscore
+      self.class.api_type
     end
 
     protected

@@ -21,7 +21,11 @@ export const Subject = {
   PaymentMethod: 'Spree::PaymentMethod',
   ShippingMethod: 'Spree::ShippingMethod',
   StockLocation: 'Spree::StockLocation',
+  StockItem: 'Spree::StockItem',
+  StockTransfer: 'Spree::StockTransfer',
   Promotion: 'Spree::Promotion',
+  PromotionAction: 'Spree::PromotionAction',
+  PromotionRule: 'Spree::PromotionRule',
   Wishlist: 'Spree::Wishlist',
 } as const
 

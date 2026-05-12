@@ -39,6 +39,20 @@ module Spree
 
     scope :with_active_stock_location, -> { joins(:stock_location).merge(Spree::StockLocation.active) }
 
+    # Stock items for products assigned to `store`. Walks
+    # `variant → product → stores`, dedups via `distinct` so a product
+    # in multiple stores doesn't double-count its stock items.
+    #
+    # Used by the admin API as the base scope (`StockItem.for_store`)
+    # so the controller can filter directly by stock_location/variant
+    # without inheriting `Spree::Store#stock_items`'s extra joins or
+    # the variant default ordering.
+    scope :for_store, ->(store) {
+      joins(variant: { product: :stores }).
+        where(spree_stores: { id: store.id }).
+        distinct
+    }
+
     def backordered_inventory_units
       Spree::InventoryUnit.backordered_for_stock_item(self)
     end

@@ -119,11 +119,27 @@ import type {
   OrderCreateParams,
   OrderUpdateParams,
   PaymentCreateParams,
+  PaymentMethodCreateParams,
+  PaymentMethodType,
+  PaymentMethodUpdateParams,
+  ProductCreateParams,
   ProductUpdateParams,
+  PromotionActionCalculator,
+  PromotionActionCreateParams,
+  PromotionActionUpdateParams,
+  PromotionCreateParams,
+  PromotionRuleCreateParams,
+  PromotionRuleUpdateParams,
+  PromotionUpdateParams,
+  ResourceTypeDefinition,
+  StockItemUpdateParams,
   StockLocationCreateParams,
   StockLocationUpdateParams,
+  StockTransferCreateParams,
   StoreCreditApplyParams,
   StoreUpdateParams,
+  TaxCategoryCreateParams,
+  TaxCategoryUpdateParams,
   VariantCreateParams,
   VariantUpdateParams,
 } from './params'
@@ -134,8 +150,10 @@ import type {
   ApiKey,
   Category,
   Country,
+  CouponCode,
   CreditCard,
   Customer,
+  CustomerGroup,
   CustomField,
   CustomFieldDefinition,
   Export,
@@ -148,9 +166,14 @@ import type {
   Payment,
   PaymentMethod,
   Product,
+  Promotion,
+  PromotionAction,
+  PromotionRule,
   Refund,
   Role,
+  StockItem,
   StockLocation,
+  StockTransfer,
   Store,
   StoreCredit,
   StoreCreditCategory,
@@ -422,6 +445,9 @@ export class AdminClient {
         ...options,
         params: getParams(params),
       }),
+
+    create: (params: ProductCreateParams, options?: RequestOptions): Promise<Product> =>
+      this.request<Product>('POST', '/products', { ...options, body: params }),
 
     update: (id: string, params: ProductUpdateParams, options?: RequestOptions): Promise<Product> =>
       this.request<Product>('PATCH', `/products/${id}`, { ...options, body: params }),
@@ -886,6 +912,184 @@ export class AdminClient {
         ...options,
         params: getParams(params),
       }),
+
+    create: (params: PaymentMethodCreateParams, options?: RequestOptions): Promise<PaymentMethod> =>
+      this.request<PaymentMethod>('POST', '/payment_methods', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: PaymentMethodUpdateParams,
+      options?: RequestOptions,
+    ): Promise<PaymentMethod> =>
+      this.request<PaymentMethod>('PATCH', `/payment_methods/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/payment_methods/${id}`, options),
+
+    types: (options?: RequestOptions): Promise<{ data: PaymentMethodType[] }> =>
+      this.request<{ data: PaymentMethodType[] }>('GET', '/payment_methods/types', options),
+  }
+
+  // ============================================
+  // Promotions (with nested actions, rules, coupon codes)
+  // ============================================
+
+  readonly promotions = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<Promotion>> =>
+      this.request<PaginatedResponse<Promotion>>('GET', '/promotions', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<Promotion> =>
+      this.request<Promotion>('GET', `/promotions/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: PromotionCreateParams, options?: RequestOptions): Promise<Promotion> =>
+      this.request<Promotion>('POST', '/promotions', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: PromotionUpdateParams,
+      options?: RequestOptions,
+    ): Promise<Promotion> =>
+      this.request<Promotion>('PATCH', `/promotions/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/promotions/${id}`, options),
+
+    actions: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<PromotionAction>> =>
+        this.request<PaginatedResponse<PromotionAction>>(
+          'GET',
+          `/promotions/${promotionId}/promotion_actions`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<PromotionAction> =>
+        this.request<PromotionAction>(
+          'GET',
+          `/promotions/${promotionId}/promotion_actions/${id}`,
+          options,
+        ),
+
+      create: (
+        promotionId: string,
+        params: PromotionActionCreateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionAction> =>
+        this.request<PromotionAction>('POST', `/promotions/${promotionId}/promotion_actions`, {
+          ...options,
+          body: params,
+        }),
+
+      update: (
+        promotionId: string,
+        id: string,
+        params: PromotionActionUpdateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionAction> =>
+        this.request<PromotionAction>(
+          'PATCH',
+          `/promotions/${promotionId}/promotion_actions/${id}`,
+          { ...options, body: params },
+        ),
+
+      delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
+        this.request<void>('DELETE', `/promotions/${promotionId}/promotion_actions/${id}`, options),
+    },
+
+    rules: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<PromotionRule>> =>
+        this.request<PaginatedResponse<PromotionRule>>(
+          'GET',
+          `/promotions/${promotionId}/promotion_rules`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<PromotionRule> =>
+        this.request<PromotionRule>(
+          'GET',
+          `/promotions/${promotionId}/promotion_rules/${id}`,
+          options,
+        ),
+
+      create: (
+        promotionId: string,
+        params: PromotionRuleCreateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionRule> =>
+        this.request<PromotionRule>('POST', `/promotions/${promotionId}/promotion_rules`, {
+          ...options,
+          body: params,
+        }),
+
+      update: (
+        promotionId: string,
+        id: string,
+        params: PromotionRuleUpdateParams,
+        options?: RequestOptions,
+      ): Promise<PromotionRule> =>
+        this.request<PromotionRule>('PATCH', `/promotions/${promotionId}/promotion_rules/${id}`, {
+          ...options,
+          body: params,
+        }),
+
+      delete: (promotionId: string, id: string, options?: RequestOptions): Promise<void> =>
+        this.request<void>('DELETE', `/promotions/${promotionId}/promotion_rules/${id}`, options),
+    },
+
+    couponCodes: {
+      list: (
+        promotionId: string,
+        params?: ListParams & Record<string, unknown>,
+        options?: RequestOptions,
+      ): Promise<PaginatedResponse<CouponCode>> =>
+        this.request<PaginatedResponse<CouponCode>>(
+          'GET',
+          `/promotions/${promotionId}/coupon_codes`,
+          { ...options, params: params ? transformListParams(params) : undefined },
+        ),
+
+      get: (promotionId: string, id: string, options?: RequestOptions): Promise<CouponCode> =>
+        this.request<CouponCode>('GET', `/promotions/${promotionId}/coupon_codes/${id}`, options),
+    },
+  }
+
+  readonly promotionActions = {
+    types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
+      this.request<{ data: ResourceTypeDefinition[] }>('GET', '/promotion_actions/types', options),
+
+    calculators: (
+      type: string,
+      options?: RequestOptions,
+    ): Promise<{ data: PromotionActionCalculator[] }> =>
+      this.request<{ data: PromotionActionCalculator[] }>('GET', '/promotion_actions/calculators', {
+        ...options,
+        params: { type },
+      }),
+  }
+
+  readonly promotionRules = {
+    types: (options?: RequestOptions): Promise<{ data: ResourceTypeDefinition[] }> =>
+      this.request<{ data: ResourceTypeDefinition[] }>('GET', '/promotion_rules/types', options),
   }
 
   // ============================================
@@ -901,6 +1105,24 @@ export class AdminClient {
         ...options,
         params,
       }),
+  }
+
+  // ============================================
+  // Customer groups
+  // ============================================
+
+  readonly customerGroups = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<CustomerGroup>> =>
+      this.request<PaginatedResponse<CustomerGroup>>('GET', '/customer_groups', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (id: string, options?: RequestOptions): Promise<CustomerGroup> =>
+      this.request<CustomerGroup>('GET', `/customer_groups/${id}`, options),
   }
 
   // ============================================
@@ -1155,6 +1377,29 @@ export class AdminClient {
         ...options,
         params: params ? transformListParams(params) : undefined,
       }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<TaxCategory> =>
+      this.request<TaxCategory>('GET', `/tax_categories/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: TaxCategoryCreateParams, options?: RequestOptions): Promise<TaxCategory> =>
+      this.request<TaxCategory>('POST', '/tax_categories', { ...options, body: params }),
+
+    update: (
+      id: string,
+      params: TaxCategoryUpdateParams,
+      options?: RequestOptions,
+    ): Promise<TaxCategory> =>
+      this.request<TaxCategory>('PATCH', `/tax_categories/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/tax_categories/${id}`, options),
   }
 
   // ============================================
@@ -1218,6 +1463,77 @@ export class AdminClient {
 
     delete: (id: string, options?: RequestOptions): Promise<void> =>
       this.request<void>('DELETE', `/stock_locations/${id}`, options),
+  }
+
+  // ============================================
+  // Stock Items
+  // ============================================
+
+  readonly stockItems = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<StockItem>> =>
+      this.request<PaginatedResponse<StockItem>>('GET', '/stock_items', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<StockItem> =>
+      this.request<StockItem>('GET', `/stock_items/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    update: (
+      id: string,
+      params: StockItemUpdateParams,
+      options?: RequestOptions,
+    ): Promise<StockItem> =>
+      this.request<StockItem>('PATCH', `/stock_items/${id}`, { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/stock_items/${id}`, options),
+  }
+
+  // ============================================
+  // Stock Transfers
+  // ============================================
+
+  /**
+   * Inventory movement between stock locations, or external → location for
+   * receives. Pass `source_location_id` for transfers; omit it to record a
+   * vendor receive (external stock arriving at the destination).
+   */
+  readonly stockTransfers = {
+    list: (
+      params?: ListParams & Record<string, unknown>,
+      options?: RequestOptions,
+    ): Promise<PaginatedResponse<StockTransfer>> =>
+      this.request<PaginatedResponse<StockTransfer>>('GET', '/stock_transfers', {
+        ...options,
+        params: params ? transformListParams(params) : undefined,
+      }),
+
+    get: (
+      id: string,
+      params?: { expand?: string[] },
+      options?: RequestOptions,
+    ): Promise<StockTransfer> =>
+      this.request<StockTransfer>('GET', `/stock_transfers/${id}`, {
+        ...options,
+        params: getParams(params),
+      }),
+
+    create: (params: StockTransferCreateParams, options?: RequestOptions): Promise<StockTransfer> =>
+      this.request<StockTransfer>('POST', '/stock_transfers', { ...options, body: params }),
+
+    delete: (id: string, options?: RequestOptions): Promise<void> =>
+      this.request<void>('DELETE', `/stock_transfers/${id}`, options),
   }
 
   // ============================================

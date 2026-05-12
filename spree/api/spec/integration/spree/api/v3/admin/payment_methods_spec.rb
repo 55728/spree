@@ -16,9 +16,7 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       description 'Returns the store\'s configured payment methods. Use `source_required: true` to know which methods need a saved source.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: paymentMethods } = await client.paymentMethods.list()
-      JS
+      admin_sdk_example 'payment-methods/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -38,6 +36,43 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
     end
   end
 
+  path '/api/v3/admin/payment_methods/types' do
+    get 'List available payment provider types' do
+      tags 'Configuration'
+      produces 'application/json'
+      security [api_key: [], bearer_auth: []]
+      description 'Returns the registered Spree::PaymentMethod subclasses that can be used to create new payment methods. Useful for populating a "Provider" dropdown in admin UIs.'
+      admin_scope :read, :settings
+
+      admin_sdk_example 'payment-methods/types'
+
+      parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
+      parameter name: :Authorization, in: :header, type: :string, required: true
+
+      response '200', 'provider types found' do
+        let(:'x-spree-api-key') { secret_api_key.plaintext_token }
+
+        before do
+          # Install StoreCredit in the store so we can verify the picker
+          # filters out providers that are already configured. (Check is
+          # also installed via the let!(:payment_method), but other tests
+          # in this file delete it, so it's order-dependent.)
+          Spree::PaymentMethod::StoreCredit.create!(name: 'Store Credit', stores: [store])
+        end
+
+        run_test! do |response|
+          data = JSON.parse(response.body)['data']
+          expect(data).to be_an(Array)
+          expect(data).to all(include('type', 'label'))
+          # StoreCredit was just installed → must be filtered out.
+          expect(data.map { |t| t['type'] }).not_to include('store_credit')
+          # Bogus is registered but not installed → must show up.
+          expect(data.map { |t| t['type'] }).to include('bogus')
+        end
+      end
+    end
+  end
+
   path '/api/v3/admin/payment_methods/{id}' do
     let(:id) { payment_method.prefixed_id }
 
@@ -48,9 +83,7 @@ RSpec.describe 'Admin Payment Methods API', type: :request, swagger_doc: 'api-re
       description 'Returns a payment method by ID.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const paymentMethod = await client.paymentMethods.get('pm_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'payment-methods/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

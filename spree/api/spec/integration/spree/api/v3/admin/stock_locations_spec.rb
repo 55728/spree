@@ -27,9 +27,7 @@ RSpec.describe 'Admin Stock Locations API', type: :request, swagger_doc: 'api-re
       DESC
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const { data: stockLocations } = await client.stockLocations.list()
-      JS
+      admin_sdk_example 'stock-locations/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -84,19 +82,7 @@ RSpec.describe 'Admin Stock Locations API', type: :request, swagger_doc: 'api-re
       DESC
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const stockLocation = await client.stockLocations.create({
-          name: 'Brooklyn warehouse',
-          kind: 'warehouse',
-          country_iso: 'US',
-          state_abbr: 'NY',
-          city: 'Brooklyn',
-          zipcode: '11201',
-          pickup_enabled: true,
-          pickup_stock_policy: 'local',
-          pickup_ready_in_minutes: 60,
-        })
-      JS
+      admin_sdk_example 'stock-locations/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -180,9 +166,7 @@ RSpec.describe 'Admin Stock Locations API', type: :request, swagger_doc: 'api-re
       description 'Returns a single stock location by prefixed ID.'
       admin_scope :read, :settings
 
-      admin_sdk_example <<~JS
-        const stockLocation = await client.stockLocations.get('sloc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'stock-locations/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -225,13 +209,7 @@ RSpec.describe 'Admin Stock Locations API', type: :request, swagger_doc: 'api-re
       DESC
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        const stockLocation = await client.stockLocations.update('sloc_UkLWZg9DAJ', {
-          pickup_enabled: true,
-          pickup_ready_in_minutes: 45,
-          pickup_instructions: 'Enter through the back door, ring the bell.',
-        })
-      JS
+      admin_sdk_example 'stock-locations/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -298,9 +276,7 @@ RSpec.describe 'Admin Stock Locations API', type: :request, swagger_doc: 'api-re
       DESC
       admin_scope :write, :settings
 
-      admin_sdk_example <<~JS
-        await client.stockLocations.delete('sloc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'stock-locations/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

@@ -1,6 +1,8 @@
 # Base class for all promotion rules
 module Spree
   class PromotionRule < Spree.base_class
+    include Spree::PreferenceSchema
+
     has_prefix_id :prorule
 
     belongs_to :promotion, class_name: 'Spree::Promotion', inverse_of: :promotion_rules, touch: true
@@ -11,6 +13,35 @@ module Spree
 
     validates :promotion, presence: true
     validate :unique_per_promotion, on: :create
+
+    # Per-subclass permitted attributes beyond `type` and `preferences`.
+    # Override in STI subclasses that accept association IDs (e.g.
+    # Rules::Product needs `product_ids`). The Admin API merges these
+    # into its `params.permit(...)` allowlist.
+    def self.additional_permitted_attributes
+      []
+    end
+
+    # Builds a `parse_on_set:` lambda for `preference :foo_ids, :array`
+    # declarations on rules that accept prefixed IDs from the API.
+    # Splits comma-separated entries, strips whitespace, and decodes
+    # any prefixed IDs to raw IDs (so eligibility checks compare
+    # against `belongs_to` foreign keys directly).
+    #
+    # When `klass` is nil, prefixed-ID decoding is skipped — used for
+    # ISO/string-keyed preferences where the value is the identifier.
+    def self.normalize_id_preference(klass: nil)
+      lambda do |values|
+        Array(values).flat_map { |v| v.to_s.split(',') }.compact_blank.map do |v|
+          v = v.strip
+          if klass && Spree::PrefixedId.prefixed_id?(v)
+            klass.find_by_param!(v).id.to_s
+          else
+            v
+          end
+        end
+      end
+    end
 
     def self.for(promotable)
       all.select { |rule| rule.applicable?(promotable) }
@@ -34,25 +65,22 @@ module Spree
       @eligibility_errors ||= ActiveModel::Errors.new(self)
     end
 
-    # Returns the human name of the promotion rule
-    #
-    # @return [String] eg. Currency
-    def human_name
-      Spree.t("promotion_rule_types.#{key}.name")
+    def self.human_name
+      Spree.t("promotion_rule_types.#{api_type}.name", default: api_type.titleize)
     end
 
-    # Returns the human description of the promotion rule
-    #
-    # @return [String]
-    def human_description
-      Spree.t("promotion_rule_types.#{key}.description")
+    def self.human_description
+      Spree.t("promotion_rule_types.#{api_type}.description", default: '')
     end
+
+    def human_name = self.class.human_name
+    def human_description = self.class.human_description
 
     # Returns the key of the promotion rule
     #
     # @return [String] eg. currency
     def key
-      type.demodulize.underscore
+      self.class.api_type
     end
 
     private

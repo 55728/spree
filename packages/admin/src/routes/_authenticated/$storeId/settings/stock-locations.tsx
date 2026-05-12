@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type {
+  StockItem,
   StockLocation,
   StockLocationCreateParams,
   StockLocationUpdateParams,
 } from '@spree/admin-sdk'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod/v4'
 import { adminClient } from '@/client'
@@ -18,6 +19,7 @@ import {
   useCountryStates,
 } from '@/components/spree/country-state-fields'
 import { ResourceTable, resourceSearchSchema } from '@/components/spree/resource-table'
+import { useRowClickBridge } from '@/components/spree/row-click-bridge'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -38,6 +40,7 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { useStockItems, useUpdateStockItem } from '@/hooks/use-stock-items'
 import {
   useCreateStockLocation,
   useDeleteStockLocation,
@@ -98,6 +101,8 @@ function StockLocationsPage() {
     navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, edit: id }) as never })
   }
 
+  useRowClickBridge('data-stock-location-id', openEdit)
+
   return (
     <>
       <ResourceTable<StockLocation>
@@ -115,38 +120,12 @@ function StockLocationsPage() {
         }
       />
 
-      {/* Row "click to edit" — surfaced as a delegated handler on the table
-          container so we don't need ResourceTable to understand row callbacks.
-          Each row renders the resource id as a data attribute via the Name
-          column below. */}
-      <RowClickBridge onEdit={openEdit} />
-
       {isCreating && <CreateStockLocationSheet open onOpenChange={(o) => !o && closeSheet()} />}
       {editId && (
         <EditStockLocationSheet id={editId} open onOpenChange={(o) => !o && closeSheet()} />
       )}
     </>
   )
-}
-
-// ResourceTable doesn't expose a per-row click handler, so we delegate clicks
-// from cells that mark themselves with `data-stock-location-id`. Keeps the
-// table generic — only this page knows what a click means.
-function RowClickBridge({ onEdit }: { onEdit: (id: string) => void }) {
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      const target = e.target as HTMLElement | null
-      const cell = target?.closest('[data-stock-location-id]') as HTMLElement | null
-      if (!cell) return
-      const id = cell.dataset.stockLocationId
-      if (!id) return
-      e.preventDefault()
-      onEdit(id)
-    }
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [onEdit])
-  return null
 }
 
 // ============================================================================
@@ -384,6 +363,7 @@ function EditStockLocationSheet({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
               <StockLocationFormFields form={form} />
+              <StockItemsPanel stockLocationId={id} />
             </div>
             <SheetFooter>
               <Can I="destroy" a={Subject.StockLocation}>
@@ -419,6 +399,143 @@ function EditStockLocationSheet({
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+// ============================================================================
+// Stock Items panel — adjust on-hand counts at this location
+// ============================================================================
+
+function StockItemsPanel({ stockLocationId }: { stockLocationId: string }) {
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const { data, isFetching } = useStockItems({
+    stock_location_id_eq: stockLocationId,
+    variant_sku_or_variant_product_name_cont: search.length >= 2 ? search : undefined,
+    page,
+    limit: 10,
+  })
+  const items = data?.data ?? []
+  const totalPages = data?.meta?.pages ?? 1
+
+  return (
+    <div className="rounded-md border">
+      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+        <div>
+          <h3 className="text-sm font-medium">Stock at this location</h3>
+          <p className="text-xs text-muted-foreground">
+            Adjust on-hand counts and backorderable status per variant.
+          </p>
+        </div>
+        <Input
+          placeholder="Search SKU or product…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
+          className="h-8 w-56"
+        />
+      </div>
+      {isFetching && items.length === 0 ? (
+        <div className="px-4 py-6 text-sm text-muted-foreground">Loading…</div>
+      ) : items.length === 0 ? (
+        <div className="px-4 py-6 text-sm text-muted-foreground">
+          No stock items {search ? 'match your search' : 'at this location yet'}.
+        </div>
+      ) : (
+        <div className="divide-y">
+          {items.map((item) => (
+            <StockItemRow key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t px-4 py-2">
+          <span className="text-xs text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || isFetching}
+            >
+              Prev
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || isFetching}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StockItemRow({ item }: { item: StockItem }) {
+  const updateMutation = useUpdateStockItem(item.id)
+  const [count, setCount] = useState<number>(item.count_on_hand)
+  const [backorderable, setBackorderable] = useState<boolean>(item.backorderable)
+
+  // Sync local state when the underlying item changes (e.g. cache refresh).
+  useEffect(() => {
+    setCount(item.count_on_hand)
+    setBackorderable(item.backorderable)
+  }, [item.count_on_hand, item.backorderable])
+
+  const dirty = count !== item.count_on_hand || backorderable !== item.backorderable
+  const variant = item.variant
+  const label = variant?.product_name ?? variant?.sku ?? item.variant_id ?? 'Unknown variant'
+
+  function save() {
+    if (!dirty) return
+    updateMutation.mutate({ count_on_hand: count, backorderable })
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{label}</div>
+        {variant?.sku && (
+          <div className="truncate text-xs text-muted-foreground">SKU {variant.sku}</div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Switch
+            checked={backorderable}
+            onCheckedChange={setBackorderable}
+            aria-label="Backorderable"
+          />
+          Backorder
+        </span>
+        <Input
+          type="number"
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value))}
+          className="w-20 text-right"
+          aria-label="Count on hand"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={save}
+          disabled={!dirty || updateMutation.isPending}
+        >
+          {updateMutation.isPending ? '…' : 'Save'}
+        </Button>
+      </div>
+    </div>
   )
 }
 

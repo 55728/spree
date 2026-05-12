@@ -39,7 +39,8 @@ module Spree
     has_many :orders, through: :order_promotions, class_name: 'Spree::Order'
     has_many :store_promotions, class_name: 'Spree::StorePromotion'
     has_many :stores, class_name: 'Spree::Store', through: :store_promotions
-    accepts_nested_attributes_for :promotion_actions, :promotion_rules
+
+    after_save :apply_pending_rules_and_actions, if: :pending_rules_or_actions?
 
     #
     # Callbacks
@@ -113,6 +114,25 @@ module Spree
       if ActiveModel::Type::Boolean.new.cast(generating_code)
         self.code = random_code
       end
+    end
+
+    # Flat-payload writer for `rules`. Accepts an array of hashes like
+    # `[{ type:, preferences:, product_ids:, ... }]` and reconciles to
+    # the desired set: existing rows update by `id`, new rows build,
+    # missing rows destroy. Falls through to AR's standard writer
+    # when assigned `Spree::PromotionRule` instances (Rails internals
+    # do this on association swap).
+    def rules=(rows)
+      assign_subclassed(:promotion_rules, rows)
+    end
+
+    # Mirrors `rules=` for promotion actions.
+    def actions=(rows)
+      assign_subclassed(:promotion_actions, rows)
+    end
+
+    def pending_rules_or_actions?
+      @pending_promotion_rules.present? || @pending_promotion_actions.present?
     end
 
     def active?
@@ -282,6 +302,95 @@ module Spree
     end
 
     private
+
+    # Reconciles `association` (`:promotion_rules` or `:promotion_actions`)
+    # to the desired set of `rows`. Each row is a `{type, id, preferences,
+    # calculator, <assoc>_ids}` hash. New rows are built, existing rows
+    # (matched by `id`) updated, anything missing destroyed.
+    #
+    # When the promotion is a new record the work is deferred until
+    # `after_save` so child rows can FK to a persisted parent.
+    def assign_subclassed(association, rows)
+      first = Array(rows).first
+      return public_send(:"#{association}=", rows) if first.nil? || first.is_a?(Spree.base_class)
+
+      pending = Array(rows).map { |entry| entry.respond_to?(:to_h) ? entry.to_h.with_indifferent_access : entry.with_indifferent_access }
+
+      if new_record?
+        instance_variable_set(:"@pending_#{association}", pending)
+        return
+      end
+
+      reconcile_subclassed(association, pending)
+    end
+
+    def apply_pending_rules_and_actions
+      if (pending = @pending_promotion_rules)
+        reconcile_subclassed(:promotion_rules, pending)
+        @pending_promotion_rules = nil
+      end
+      if (pending = @pending_promotion_actions)
+        reconcile_subclassed(:promotion_actions, pending)
+        @pending_promotion_actions = nil
+      end
+    end
+
+    def reconcile_subclassed(association, rows)
+      collection = public_send(association)
+      kept_ids = rows.filter_map { |row| save_subclassed_row(collection, row) }
+      collection.where.not(id: kept_ids).destroy_all if kept_ids.any? || rows.empty?
+    end
+
+    def save_subclassed_row(collection, row)
+      record = find_or_build_subclassed(collection, row)
+      return nil unless record
+
+      preferences = row[:preferences]
+      calculator = row[:calculator]
+      attrs = row.except(:id, :type, :preferences, :calculator)
+
+      # Any `*_ids` mass-assignment on a new record builds join rows with
+      # a nil FK to the parent — they fail `presence: true` on autosave.
+      # Defer those assignments until after the rule itself is persisted.
+      deferred_ids, scalar_attrs = attrs.partition { |k, _| record.new_record? && k.to_s.end_with?('_ids') }
+      record.assign_attributes(scalar_attrs.to_h) if scalar_attrs.any?
+
+      preferences&.each do |key, value|
+        record.set_preference(key.to_sym, value) if record.has_preference?(key.to_sym)
+      end
+      record.assign_calculator_attributes(calculator) if calculator.present? && record.respond_to?(:assign_calculator_attributes)
+
+      # Always save — `record.changed?` doesn't reflect changes to
+      # preferences (stored in a serialized hash) or to the calculator
+      # association, and we may have built a new record above.
+      record.save!
+
+      deferred_ids.each { |key, value| record.public_send("#{key}=", value) }
+      record.save! if record.changed?
+
+      record.id
+    end
+
+    def find_or_build_subclassed(collection, row)
+      if row[:id].present?
+        id = decode_id(row[:id])
+        existing = collection.find { |r| r.id == id } || collection.find_by(id: id)
+        return existing if existing
+      end
+
+      klass = collection.proxy_association.klass.find_by_api_type(row[:type])
+      return nil unless klass
+
+      record = collection.build(type: klass.to_s)
+      record.class == klass ? record : record.becomes(klass)
+    end
+
+    def decode_id(value)
+      return nil if value.blank?
+      return value.to_i if value.is_a?(Integer) || value.to_s.match?(/\A\d+\z/)
+
+      Spree::PrefixedId.decode_prefixed_id(value)
+    end
 
     def not_used?
       return true if orders.empty?

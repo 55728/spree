@@ -21,11 +21,7 @@ RSpec.describe 'Admin Order Gift Cards API', type: :request, swagger_doc: 'api-r
       description 'Applies a gift card by code to the order. Returns the gift card.'
       admin_scope :write, :gift_cards
 
-      admin_sdk_example <<~JS
-        await client.orders.giftCards.apply('or_UkLWZg9DAJ', {
-          code: 'GIFT-XXXX-YYYY',
-        })
-      JS
+      admin_sdk_example 'order-gift-cards/apply'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -62,9 +58,7 @@ RSpec.describe 'Admin Order Gift Cards API', type: :request, swagger_doc: 'api-r
       description 'Removes the gift card from the order.'
       admin_scope :write, :gift_cards
 
-      admin_sdk_example <<~JS
-        await client.orders.giftCards.remove('or_UkLWZg9DAJ', 'gc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-gift-cards/remove'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

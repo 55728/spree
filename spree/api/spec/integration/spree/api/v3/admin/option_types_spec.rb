@@ -16,9 +16,7 @@ RSpec.describe 'Admin Option Types API', type: :request, swagger_doc: 'api-refer
       description 'Returns a paginated list of option types.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const { data: optionTypes } = await client.optionTypes.list()
-      JS
+      admin_sdk_example 'option-types/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -66,16 +64,7 @@ RSpec.describe 'Admin Option Types API', type: :request, swagger_doc: 'api-refer
       DESC
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const optionType = await client.optionTypes.create({
-          name: 'color',
-          presentation: 'Color',
-          option_values: [
-            { name: 'red', presentation: 'Red' },
-            { name: 'navy', presentation: 'Navy' },
-          ],
-        })
-      JS
+      admin_sdk_example 'option-types/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -134,9 +123,7 @@ RSpec.describe 'Admin Option Types API', type: :request, swagger_doc: 'api-refer
       description 'Returns a single option type by ID, including its option values.'
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const optionType = await client.optionTypes.get('ot_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'option-types/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -177,14 +164,7 @@ RSpec.describe 'Admin Option Types API', type: :request, swagger_doc: 'api-refer
       description 'Updates an option type. Supports updating nested option values.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const optionType = await client.optionTypes.update('ot_UkLWZg9DAJ', {
-          presentation: 'Updated Presentation',
-          option_values: [
-            { name: 'red', presentation: 'Crimson' },
-          ],
-        })
-      JS
+      admin_sdk_example 'option-types/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -242,9 +222,7 @@ RSpec.describe 'Admin Option Types API', type: :request, swagger_doc: 'api-refer
       description 'Deletes an option type.'
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        await client.optionTypes.delete('ot_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'option-types/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

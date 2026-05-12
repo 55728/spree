@@ -21,9 +21,7 @@ RSpec.describe 'Admin Order Line Items API', type: :request, swagger_doc: 'api-r
       description 'Returns all line items for an order.'
       admin_scope :read, :orders
 
-      admin_sdk_example <<~JS
-        const { data: items } = await client.orders.items.list('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-items/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -54,12 +52,7 @@ RSpec.describe 'Admin Order Line Items API', type: :request, swagger_doc: 'api-r
       description 'Adds a new line item to the order.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const item = await client.orders.items.create('or_UkLWZg9DAJ', {
-          variant_id: 'variant_k5nR8xLq',
-          quantity: 2,
-        })
-      JS
+      admin_sdk_example 'order-items/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -99,9 +92,7 @@ RSpec.describe 'Admin Order Line Items API', type: :request, swagger_doc: 'api-r
       description 'Returns details of a specific line item.'
       admin_scope :read, :orders
 
-      admin_sdk_example <<~JS
-        const item = await client.orders.items.get('or_UkLWZg9DAJ', 'li_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-items/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -133,11 +124,7 @@ RSpec.describe 'Admin Order Line Items API', type: :request, swagger_doc: 'api-r
       description 'Updates an order item quantity or metadata.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        const item = await client.orders.items.update('or_UkLWZg9DAJ', 'li_UkLWZg9DAJ', {
-          quantity: 5,
-        })
-      JS
+      admin_sdk_example 'order-items/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -170,9 +157,7 @@ RSpec.describe 'Admin Order Line Items API', type: :request, swagger_doc: 'api-r
       description 'Removes an item from the order.'
       admin_scope :write, :orders
 
-      admin_sdk_example <<~JS
-        await client.orders.items.delete('or_UkLWZg9DAJ', 'li_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-items/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

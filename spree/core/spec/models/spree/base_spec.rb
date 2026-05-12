@@ -46,9 +46,9 @@ describe Spree::Base do
     end
   end
 
-  describe '.json_api_type' do
-    it { expect(Spree::InventoryUnit.json_api_type).to eq('inventory_unit') }
-    it { expect(Spree::Address.json_api_type).to eq('address') }
+  describe '.api_type' do
+    it { expect(Spree::InventoryUnit.api_type).to eq('inventory_unit') }
+    it { expect(Spree::Address.api_type).to eq('address') }
   end
 
   describe '.json_api_columns' do

@@ -19,9 +19,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Returns all shipments for an order.'
       admin_scope :read, :fulfillments
 
-      admin_sdk_example <<~JS
-        const { data: fulfillments } = await client.orders.fulfillments.list('or_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-fulfillments/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -56,9 +54,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Returns details of a specific shipment.'
       admin_scope :read, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.get('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-fulfillments/get'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -91,11 +87,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Updates a shipment (tracking, shipping rate).'
       admin_scope :write, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.update('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ', {
-          tracking: '1Z999AA10123456784',
-        })
-      JS
+      admin_sdk_example 'order-fulfillments/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -132,9 +124,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Marks a fulfillment as fulfilled.'
       admin_scope :write, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.fulfill('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-fulfillments/fulfill'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -169,9 +159,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Cancels a fulfillment.'
       admin_scope :write, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.cancel('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-fulfillments/cancel'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -202,9 +190,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Resumes a canceled fulfillment.'
       admin_scope :write, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.resume('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'order-fulfillments/resume'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,
@@ -240,11 +226,7 @@ RSpec.describe 'Admin Order Fulfillments API', type: :request, swagger_doc: 'api
       description 'Transfers items from this shipment to a new shipment at a different stock location.'
       admin_scope :write, :fulfillments
 
-      admin_sdk_example <<~JS
-        const fulfillment = await client.orders.fulfillments.split('or_UkLWZg9DAJ', 'ful_UkLWZg9DAJ', {
-          quantity: 1,
-        })
-      JS
+      admin_sdk_example 'order-fulfillments/split'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true,

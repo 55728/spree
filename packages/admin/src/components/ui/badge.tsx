@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority'
+import { CheckIcon } from 'lucide-react'
 import * as React from 'react'
 import { Slot } from '@/components/ui/slot'
 import { cn } from '@/lib/utils'
@@ -91,4 +92,52 @@ function StatusBadge({ status, className }: { status: string; className?: string
   )
 }
 
-export { Badge, badgeVariants, StatusBadge }
+/**
+ * Boolean-state badge — mirrors the Rails admin's `active_badge` helper.
+ *
+ * Renders a `success` (check + label) badge when `active`, an `outline`
+ * badge with the inactive label otherwise. Use it for "Yes/No" or
+ * "Enabled/Disabled" cells in tables and detail rows.
+ *
+ * @example  Default Yes/No
+ *   <ActiveBadge active={user.confirmed} />
+ *
+ * @example  Custom labels
+ *   <ActiveBadge active={sl.pickup_enabled} activeLabel="Enabled" inactiveLabel="Disabled" />
+ *
+ * @example  Hide inactive (renders a muted dash instead — matches the
+ *   pre-existing `<Badge> : <span>—</span>` pattern in stock-locations).
+ *   <ActiveBadge active={sl.pickup_enabled} activeLabel="Enabled" dashWhenInactive />
+ */
+function ActiveBadge({
+  active,
+  activeLabel = 'Yes',
+  inactiveLabel = 'No',
+  dashWhenInactive = false,
+  className,
+}: {
+  active: boolean | null | undefined
+  activeLabel?: string
+  inactiveLabel?: string
+  dashWhenInactive?: boolean
+  className?: string
+}) {
+  if (active) {
+    return (
+      <Badge variant="outline" className={className}>
+        <CheckIcon />
+        {activeLabel}
+      </Badge>
+    )
+  }
+  if (dashWhenInactive) {
+    return <span className={cn('text-muted-foreground', className)}>—</span>
+  }
+  return (
+    <Badge variant="ghost" className={className}>
+      {inactiveLabel}
+    </Badge>
+  )
+}
+
+export { ActiveBadge, Badge, badgeVariants, StatusBadge }

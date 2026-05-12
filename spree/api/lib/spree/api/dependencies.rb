@@ -175,6 +175,7 @@ module Spree
         admin_option_value_serializer: 'Spree::Api::V3::Admin::OptionValueSerializer',
         admin_media_serializer: 'Spree::Api::V3::Admin::MediaSerializer',
         admin_stock_item_serializer: 'Spree::Api::V3::Admin::StockItemSerializer',
+        admin_stock_transfer_serializer: 'Spree::Api::V3::Admin::StockTransferSerializer',
         admin_shipment_serializer: 'Spree::Api::V3::Admin::FulfillmentSerializer',
         admin_fulfillment_serializer: 'Spree::Api::V3::Admin::FulfillmentSerializer',
         admin_gift_card_serializer: 'Spree::Api::V3::Admin::GiftCardSerializer',
@@ -199,6 +200,7 @@ module Spree
         admin_credit_card_serializer: 'Spree::Api::V3::Admin::CreditCardSerializer',
         admin_store_credit_serializer: 'Spree::Api::V3::Admin::StoreCreditSerializer',
         admin_store_credit_category_serializer: 'Spree::Api::V3::Admin::StoreCreditCategorySerializer',
+        admin_customer_group_serializer: 'Spree::Api::V3::Admin::CustomerGroupSerializer',
         admin_payment_source_serializer: 'Spree::Api::V3::Admin::PaymentSourceSerializer',
         admin_digital_link_serializer: 'Spree::Api::V3::Admin::DigitalLinkSerializer',
         admin_store_serializer: 'Spree::Api::V3::Admin::StoreSerializer',
@@ -206,6 +208,10 @@ module Spree
         admin_invitation_serializer: 'Spree::Api::V3::Admin::InvitationSerializer',
         admin_role_serializer: 'Spree::Api::V3::Admin::RoleSerializer',
         admin_export_serializer: 'Spree::Api::V3::Admin::ExportSerializer',
+        admin_promotion_serializer: 'Spree::Api::V3::Admin::PromotionSerializer',
+        admin_promotion_action_serializer: 'Spree::Api::V3::Admin::PromotionActionSerializer',
+        admin_promotion_rule_serializer: 'Spree::Api::V3::Admin::PromotionRuleSerializer',
+        admin_coupon_code_serializer: 'Spree::Api::V3::Admin::CouponCodeSerializer',
 
         # platform serializers
         platform_metafield_serializer: 'Spree::Api::V2::Platform::MetafieldSerializer',

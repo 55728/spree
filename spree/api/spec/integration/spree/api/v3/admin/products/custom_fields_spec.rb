@@ -22,9 +22,7 @@ RSpec.describe 'Admin Product Custom Fields API', type: :request, swagger_doc: '
       description "Returns the product's custom field values."
       admin_scope :read, :products
 
-      admin_sdk_example <<~JS
-        const { data: customFields } = await client.products.customFields.list('prod_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'product-custom-fields/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -55,12 +53,7 @@ RSpec.describe 'Admin Product Custom Fields API', type: :request, swagger_doc: '
       description "Sets a custom field value on the product. Requires an existing CustomFieldDefinition; pass its prefixed `cfdef_…` id."
       admin_scope :write, :products
 
-      admin_sdk_example <<~JS
-        const customField = await client.products.customFields.create('prod_UkLWZg9DAJ', {
-          custom_field_definition_id: 'cfdef_AbC123XyZ',
-          value: 'wool',
-        })
-      JS
+      admin_sdk_example 'product-custom-fields/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true

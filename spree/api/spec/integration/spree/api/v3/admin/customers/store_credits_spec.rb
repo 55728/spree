@@ -20,9 +20,7 @@ RSpec.describe 'Admin Customer Store Credits API', type: :request, swagger_doc: 
       description 'Returns store credits issued to the customer.'
       admin_scope :read, :store_credits
 
-      admin_sdk_example <<~JS
-        const { data: storeCredits } = await client.customers.storeCredits.list('cus_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customer-store-credits/list'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -50,14 +48,7 @@ RSpec.describe 'Admin Customer Store Credits API', type: :request, swagger_doc: 
       description '`created_by` is set automatically from the authenticated admin.'
       admin_scope :write, :store_credits
 
-      admin_sdk_example <<~JS
-        const credit = await client.customers.storeCredits.create('cus_UkLWZg9DAJ', {
-          amount: 25.00,
-          currency: 'USD',
-          category_id: 1,
-          memo: 'Goodwill credit',
-        })
-      JS
+      admin_sdk_example 'customer-store-credits/create'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -98,13 +89,7 @@ RSpec.describe 'Admin Customer Store Credits API', type: :request, swagger_doc: 
       description 'Update memo / category / amount. The amount can only be changed if `amount_used == 0`.'
       admin_scope :write, :store_credits
 
-      admin_sdk_example <<~JS
-        const credit = await client.customers.storeCredits.update(
-          'cus_UkLWZg9DAJ',
-          'sc_UkLWZg9DAJ',
-          { memo: 'Reissued for damaged shipment' },
-        )
-      JS
+      admin_sdk_example 'customer-store-credits/update'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
@@ -135,9 +120,7 @@ RSpec.describe 'Admin Customer Store Credits API', type: :request, swagger_doc: 
       description 'Deletes an unused store credit (amount_used == 0). Returns 422 otherwise.'
       admin_scope :write, :store_credits
 
-      admin_sdk_example <<~JS
-        await client.customers.storeCredits.delete('cus_UkLWZg9DAJ', 'sc_UkLWZg9DAJ')
-      JS
+      admin_sdk_example 'customer-store-credits/delete'
 
       parameter name: 'x-spree-api-key', in: :header, type: :string, required: true
       parameter name: :Authorization, in: :header, type: :string, required: true
