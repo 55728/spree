@@ -59,7 +59,7 @@ describe Spree::Core::ControllerHelpers::Store, type: :controller do
       end
     end
 
-    context 'on a object that accepts a single store' do
+    context 'on an object that accepts a single store' do
       before { allow(controller).to receive(:current_store).and_return(store) }
 
       context 'when no store is present' do

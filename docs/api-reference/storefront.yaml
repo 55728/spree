@@ -171,7 +171,7 @@ paths:
                 address:
                   $ref: "#/components/schemas/AddressPayload"
             examples:
-              Create a Address:
+              Create an Address:
                 value:
                   address:
                     firstname: Mark

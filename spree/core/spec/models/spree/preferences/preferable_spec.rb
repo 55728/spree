@@ -116,7 +116,7 @@ describe Spree::Preferences::Preferable, type: :model do
                                            color: 'green')
     end
 
-    it 'builds a array of deprecated preferences' do
+    it 'builds an array of deprecated preferences' do
       expect(@b.deprecated_preferences).to eq([{ name: :color,
                                                  message: 'Please use colour instead' }])
     end

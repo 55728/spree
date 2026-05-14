@@ -58,7 +58,7 @@ describe Spree::Gateway, type: :model do
       create(:payment, order: order, source: cc, payment_method: has_card)
     end
 
-    it 'finds credit cards associated on a order completed' do
+    it 'finds credit cards associated with a completed order' do
       allow(payment.order).to receive_messages completed?: true
 
       expect(no_card.reusable_sources(payment.order)).to be_empty
